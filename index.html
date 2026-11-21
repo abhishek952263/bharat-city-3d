@@ -1,0 +1,2589 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Bharat City 3D • Open World</title>
+  <meta name="theme-color" content="#090c18" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <style>
+    :root {
+      --gold: #facc15;
+      --gold2: #f59e0b;
+      --red: #ef4444;
+      --pink: #ec4899;
+      --green: #10b981;
+      --cyan: #38bdf8;
+      --glass: rgba(10, 14, 28, 0.76);
+      --border: rgba(255, 255, 255, 0.16);
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #090c18; color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", Arial, sans-serif;
+      touch-action: none;
+    }
+
+    #glContainer { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; }
+    #glContainer canvas { display: block; width: 100%; height: 100%; }
+
+    /* ================= HERO SPLASH SCREEN ================= */
+    #splashScreen {
+      position: fixed; inset: 0; z-index: 120;
+      background: linear-gradient(180deg, rgba(9,12,24,0.35) 0%, rgba(9,12,24,0.06) 44%, rgba(9,12,24,0.94) 86%);
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding: 26px 20px calc(26px + env(safe-area-inset-bottom));
+      transition: opacity 0.55s ease;
+    }
+    #splashScreen.hide { opacity: 0; pointer-events: none; }
+    .sp-tag {
+      background: linear-gradient(90deg, #f59e0b, #facc15);
+      color: #090c18; font-size: 11px; font-weight: 900;
+      padding: 4px 12px; border-radius: 999px; letter-spacing: 1.5px; margin-bottom: 6px;
+    }
+    .sp-title {
+      font-size: clamp(26px, 6vw, 46px); font-weight: 900; letter-spacing: 2px; margin: 0 0 6px;
+      background: linear-gradient(180deg, #ffffff 10%, #facc15 65%, #ea580c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.85));
+    }
+    .sp-bar { width: min(340px, 82vw); height: 7px; border-radius: 99px; background: rgba(255,255,255,0.18); overflow: hidden; margin-top: 8px; }
+    .sp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f59e0b, #facc15, #fff); transition: width 0.2s; }
+    .sp-pct { font-size: 11px; color: #cbd5e1; margin-top: 6px; font-weight: 800; }
+
+    /* ================= HOME LOBBY UI ================= */
+    #lobbyUI {
+      position: fixed; inset: 0; z-index: 20; pointer-events: none;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    }
+    #lobbyUI.hidden { display: none; }
+
+    .l-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .l-prof {
+      pointer-events: auto; display: flex; align-items: center; gap: 9px;
+      background: var(--glass); border: 1px solid var(--border);
+      border-left: 3px solid var(--gold); border-radius: 10px;
+      padding: 6px 11px; backdrop-filter: blur(8px);
+    }
+    .l-av { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .l-pname { font-size: 13px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
+    .l-sub { font-size: 10.5px; color: #cbd5e1; font-weight: 700; }
+    .tier-chip { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; background: rgba(148,163,184,0.25); color: #e2e8f0; }
+    .tier-chip.pro { background: linear-gradient(90deg, #f59e0b, #facc15); color: #090c18; }
+    .tier-chip.owner { background: linear-gradient(90deg, #a855f7, #ec4899, #facc15); color: #fff; }
+
+    .l-top-right { pointer-events: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .l-btn {
+      background: var(--glass); border: 1px solid var(--border); color: #f8fafc;
+      padding: 7px 10px; border-radius: 9px; font-size: 11.5px; font-weight: 800;
+      cursor: pointer; backdrop-filter: blur(8px);
+    }
+    .l-btn.gold { background: linear-gradient(135deg, #f59e0b, #facc15); color: #090c18; border: none; }
+    .l-btn.green { background: #10b981; color: #022c22; border: none; display: none; }
+    .l-btn.green.show { display: inline-block; }
+
+    .l-mid { flex: 1; display: flex; align-items: center; justify-content: space-between; min-height: 0; }
+    .l-side { pointer-events: auto; display: flex; flex-direction: column; gap: 8px; width: 126px; }
+    .side-tab {
+      background: var(--glass); border: 1px solid var(--border);
+      border-left: 3px solid rgba(255,255,255,0.28); color: #f8fafc;
+      padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 900;
+      text-align: left; cursor: pointer; backdrop-filter: blur(8px);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .side-tab:active { transform: scale(0.96); }
+
+    .l-right-tools { pointer-events: auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .cam-zoom-btn {
+      background: var(--glass); border: 1px solid rgba(250,204,21,0.48);
+      color: #fef08a; padding: 8px 11px; border-radius: 10px;
+      font-size: 11.5px; font-weight: 800; cursor: pointer; backdrop-filter: blur(8px);
+    }
+
+    .l-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .hero-plate {
+      pointer-events: auto;
+      background: linear-gradient(90deg, rgba(10,14,28,0.88), rgba(10,14,28,0.35));
+      border-left: 3px solid var(--gold); padding: 7px 13px; border-radius: 8px;
+    }
+    .hero-plate b { font-size: 16px; color: var(--gold); display: block; }
+    .hero-plate span { font-size: 11px; color: #cbd5e1; font-weight: 700; }
+
+    .btn-start {
+      pointer-events: auto; min-width: 196px; padding: 14px 28px; border: none; border-radius: 10px;
+      background: linear-gradient(180deg, #fde047 0%, #f59e0b 60%, #d97706 100%);
+      color: #090c18; font-size: 19px; font-weight: 900; letter-spacing: 1.5px;
+      cursor: pointer; box-shadow: 0 6px 24px rgba(245, 158, 11, 0.55); text-transform: uppercase;
+    }
+    .btn-start:active { transform: scale(0.96); }
+
+    /* ================= CLEAN MINIMAL IN-GAME HUD ================= */
+    #gameHUD { display: none; position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+    #gameHUD.active { display: block; }
+
+    #minimapCanvas {
+      position: fixed; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left));
+      width: 104px; height: 104px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.45); background: rgba(8,14,24,0.72); z-index: 32;
+    }
+
+    /* Wanted Stars under Top-Right */
+    .g-top-right {
+      position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right));
+      display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+      pointer-events: auto; z-index: 36;
+    }
+    .g-top-row { display: flex; align-items: center; gap: 6px; }
+    .g-icon-btn {
+      width: 35px; height: 35px; border-radius: 9px;
+      background: rgba(10,14,28,0.74); border: 1px solid rgba(255,255,255,0.24);
+      color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .g-icon-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(245,158,11,0.26); }
+    .g-icon-btn.owner-btn { border-color: #c084fc; background: linear-gradient(135deg, rgba(168,85,247,0.55), rgba(236,72,153,0.55)); }
+
+    #wantedStars {
+      font-size: 16px; letter-spacing: 2px; color: #facc15;
+      text-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+      display: none;
+    }
+    #wantedStars.show { display: block; }
+
+    /* Subtle Center Crosshair (only visible when holding a gun or in Tank/Heli) */
+    #crosshair {
+      display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 24px; height: 24px; pointer-events: none; z-index: 31;
+    }
+    #crosshair.show { display: block; }
+    .ch-l { position: absolute; background: rgba(255,255,255,0.9); box-shadow: 0 0 3px #000; }
+
+    #damageFlash {
+      position: fixed; inset: 0; pointer-events: none; z-index: 28;
+      box-shadow: inset 0 0 80px rgba(239,68,68,0.85); opacity: 0; transition: opacity 0.18s;
+    }
+    #damageFlash.show { opacity: 1; }
+
+    /* Context Action Pill (Appears ONLY when near Car / Tank / Heli / Girl / Gun!) */
+    #contextActions {
+      position: fixed; left: 50%; bottom: calc(68px + env(safe-area-inset-bottom));
+      transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+      pointer-events: auto; z-index: 38; max-width: 82vw;
+    }
+    .ctx-btn {
+      background: rgba(10, 14, 28, 0.88); border: 1.5px solid var(--gold);
+      color: #fff; padding: 8px 14px; border-radius: 999px;
+      font-size: 12.5px; font-weight: 900; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .ctx-btn.love { border-color: #f472b6; background: rgba(157, 23, 77, 0.88); }
+    .ctx-btn.veh { border-color: #38bdf8; background: rgba(12, 74, 110, 0.9); }
+
+    /* Bottom-Center Slim HP + Weapon/Hand Switcher */
+    .g-bottom-center {
+      position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom));
+      transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;
+      pointer-events: auto; z-index: 35;
+    }
+    .w-pill {
+      background: rgba(10,14,28,0.78); border: 1px solid rgba(255,255,255,0.28);
+      color: var(--gold); padding: 4px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 900; cursor: pointer;
+    }
+    .g-hp-wrap {
+      width: 186px; height: 10px; background: rgba(0,0,0,0.68);
+      border: 1px solid rgba(255,255,255,0.28); border-radius: 99px; overflow: hidden; position: relative;
+    }
+    .g-hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #10b981, #4ade80); transition: width 0.12s; }
+    .g-hp-num { position: absolute; inset: 0; font-size: 8.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-shadow: 0 1px 2px #000; }
+
+    /* Touch Joystick & Camera Look */
+    #joyZone { position: fixed; left: 0; bottom: 0; width: 44%; height: 64%; pointer-events: auto; touch-action: none; z-index: 33; }
+    #joyBase {
+      position: fixed; width: 106px; height: 106px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.26); background: rgba(255,255,255,0.06);
+      left: 30px; bottom: 30px; pointer-events: none; z-index: 32;
+    }
+    #joyKnob {
+      position: absolute; left: 50%; top: 50%; width: 44px; height: 44px;
+      margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px solid #fff;
+    }
+    #lookZone { position: fixed; right: 0; top: 0; width: 58%; height: 100%; pointer-events: auto; touch-action: none; z-index: 31; }
+
+    /* Clean Right-Side Tactical Buttons */
+    .act-btn {
+      position: fixed; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.56); border: 2px solid rgba(255,255,255,0.48);
+      color: #fff; font-weight: 900; display: flex; align-items: center; justify-content: center;
+      pointer-events: auto; touch-action: none; cursor: pointer; z-index: 37; backdrop-filter: blur(3px);
+    }
+    .act-btn:active { transform: scale(0.9); background: rgba(245,158,11,0.65); border-color: var(--gold); }
+
+    #btnActionMain {
+      right: calc(20px + env(safe-area-inset-right)); bottom: calc(34px + env(safe-area-inset-bottom));
+      width: 74px; height: 74px; font-size: 27px;
+      background: rgba(239, 68, 68, 0.54); border-color: #fca5a5;
+    }
+    #btnJumpUp {
+      right: calc(24px + env(safe-area-inset-right)); bottom: calc(122px + env(safe-area-inset-bottom));
+      width: 54px; height: 54px; font-size: 20px;
+    }
+    #btnDownExit {
+      right: calc(106px + env(safe-area-inset-right)); bottom: calc(44px + env(safe-area-inset-bottom));
+      width: 52px; height: 52px; font-size: 19px;
+    }
+    #btnSprintNitro {
+      right: calc(102px + env(safe-area-inset-right)); bottom: calc(112px + env(safe-area-inset-bottom));
+      width: 48px; height: 48px; font-size: 18px;
+    }
+
+    /* ================= MODALS & OWNER STUDIO ================= */
+    .modal-bg {
+      display: none; position: fixed; inset: 0; z-index: 90;
+      background: rgba(4, 7, 15, 0.78); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 14px;
+    }
+    .modal-bg.show { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto;
+      background: #0f172a; border: 1.5px solid rgba(250, 204, 21, 0.42);
+      border-radius: 16px; padding: 15px; color: #f8fafc;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.75);
+    }
+    /* Transparent Side Drawer for Owner Pose Studio so you see Hero live! */
+    #ownerStudioModal {
+      background: transparent; backdrop-filter: none; justify-content: flex-end; pointer-events: none;
+    }
+    #ownerStudioModal .modal-card {
+      pointer-events: auto; max-width: 315px; background: rgba(15, 23, 42, 0.9);
+      border-color: #c084fc;
+    }
+
+    .m-title { margin: 0 0 8px; font-size: 16.5px; font-weight: 900; color: var(--gold); }
+    .m-sub { margin: 0 0 10px; font-size: 12px; color: #cbd5e1; line-height: 1.4; }
+    .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .opt-card {
+      background: #1e293b; border: 1.5px solid rgba(255,255,255,0.14);
+      border-radius: 11px; padding: 9px; cursor: pointer; text-align: left; color: #fff;
+    }
+    .opt-card.sel { border-color: var(--gold); background: rgba(245,158,11,0.2); }
+    .opt-card b { display: block; font-size: 12.5px; }
+    .opt-card span { font-size: 10.5px; color: #94a3b8; }
+
+    .m-btn {
+      width: 100%; padding: 10px; border-radius: 10px; border: none;
+      font-size: 13px; font-weight: 900; cursor: pointer; margin-bottom: 7px;
+    }
+    .m-btn.gold { background: linear-gradient(135deg, #f59e0b, #facc15); color: #090c18; }
+    .m-btn.green { background: #10b981; color: #022c22; }
+    .m-btn.purple { background: linear-gradient(135deg, #9333ea, #ec4899); color: #fff; }
+    .m-btn.ghost { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+
+    .pose-row { margin-bottom: 7px; }
+    .pose-row label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: #e2e8f0; margin-bottom: 2px; }
+    .pose-row input[type="range"] { width: 100%; accent-color: #ec4899; }
+
+    .qr-box { background: #fff; border-radius: 12px; padding: 10px; text-align: center; color: #0f172a; margin-bottom: 10px; }
+    .qr-box img { width: 158px; height: 158px; display: block; margin: 4px auto; image-rendering: pixelated; }
+    .modal-input {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #334155;
+      background: #1e293b; color: #fff; font-size: 14px; font-weight: 800;
+      text-transform: uppercase; outline: none; margin-bottom: 8px;
+    }
+
+    /* Small Voice Dialogue Subtitle Pill (auto-fades in 2.5s, never clutters!) */
+    #voiceCaption {
+      position: fixed; top: calc(54px + env(safe-area-inset-top)); left: 50%;
+      transform: translateX(-50%); background: rgba(10,14,28,0.88);
+      border: 1px solid rgba(250,204,21,0.55); color: #fff;
+      padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 110;
+      max-width: 88vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #voiceCaption.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="glContainer"></div>
+
+  <!-- ================= SPLASH SCREEN ================= -->
+  <div id="splashScreen">
+    <div class="sp-tag">INDIA 3D OPEN WORLD SANDBOX</div>
+    <h1 class="sp-title">BHARAT CITY 3D</h1>
+    <div class="sp-bar"><div class="sp-fill" id="spFill"></div></div>
+    <div class="sp-pct" id="spPct">LOADING 3D WORLD...</div>
+  </div>
+
+  <!-- ================= HOME LOBBY UI ================= -->
+  <div id="lobbyUI">
+    <div class="l-top">
+      <div class="l-prof">
+        <div class="l-av" id="lAvatar">😎</div>
+        <div>
+          <div class="l-pname">
+            <span id="lRankName">Bharat Hero</span>
+            <span class="tier-chip" id="lTier">FREE</span>
+          </div>
+          <div class="l-sub">🪙 <span id="lCash">1000</span> • ID: <span id="lPid">LA-00000</span></div>
+        </div>
+      </div>
+
+      <div class="l-top-right">
+        <button type="button" class="l-btn green" id="installPwaBtn">📲 Install</button>
+        <button type="button" class="l-btn" id="voiceToggleBtn">🗣️ Voice ON</button>
+        <button type="button" class="l-btn" id="langBtn">🌐 हिन्दी</button>
+        <button type="button" class="l-btn gold" id="openProBtn">👑 PRO / Owner</button>
+      </div>
+    </div>
+
+    <div class="l-mid">
+      <div class="l-side">
+        <button type="button" class="side-tab" id="tabStyleBtn">👕 <span id="lblStyle">Hero &amp; Kapde</span></button>
+        <button type="button" class="side-tab" id="tabSetBtn">⚙️ <span id="lblSettings">Settings</span></button>
+        <button type="button" class="side-tab" id="tabOwnerLobbyBtn" style="display:none;border-left-color:#ec4899;">👑 Owner Mode</button>
+      </div>
+      <div class="l-right-tools">
+        <button type="button" class="cam-zoom-btn" id="faceZoomBtn">🔍 Face Zoom</button>
+      </div>
+    </div>
+
+    <div class="l-bottom">
+      <div class="hero-plate">
+        <b id="lHeroTitle">AARAV (Stylish Denim)</b>
+        <span>360° Drag Rotate • Cars, Tank, Helicopter &amp; Open World</span>
+      </div>
+      <button type="button" class="btn-start" id="startBtn">PLAY</button>
+    </div>
+  </div>
+
+  <!-- ================= CLEAN MINIMAL IN-GAME HUD ================= -->
+  <div id="gameHUD">
+    <canvas id="minimapCanvas" width="128" height="128"></canvas>
+
+    <div class="g-top-right">
+      <div class="g-top-row">
+        <button type="button" class="g-icon-btn" id="hudFreeLookBtn" title="360° Camera View">👁️</button>
+        <button type="button" class="g-icon-btn owner-btn" id="hudOwnerBtn" title="Owner God & Pose Control" style="display:none;">👑</button>
+        <button type="button" class="g-icon-btn" id="hudFsBtn" title="Fullscreen">⛶</button>
+        <button type="button" class="g-icon-btn" id="hudPauseBtn" title="Pause">⏸</button>
+      </div>
+      <div id="wantedStars">★</div>
+    </div>
+
+    <div id="crosshair">
+      <div class="ch-l" style="left:11px;top:0;width:2px;height:7px;"></div>
+      <div class="ch-l" style="left:11px;bottom:0;width:2px;height:7px;"></div>
+      <div class="ch-l" style="top:11px;left:0;width:7px;height:2px;"></div>
+      <div class="ch-l" style="top:11px;right:0;width:7px;height:2px;"></div>
+    </div>
+    <div id="damageFlash"></div>
+
+    <!-- Context Buttons (Car / Tank / Heli / Romance / Kiss / Gun Pickup) -->
+    <div id="contextActions"></div>
+
+    <div id="joyZone"></div>
+    <div id="joyBase"><div id="joyKnob"></div></div>
+    <div id="lookZone"></div>
+
+    <button type="button" class="act-btn" id="btnActionMain">👊</button>
+    <button type="button" class="act-btn" id="btnJumpUp">⬆</button>
+    <button type="button" class="act-btn" id="btnDownExit">⬇</button>
+    <button type="button" class="act-btn" id="btnSprintNitro">⚡</button>
+
+    <div class="g-bottom-center">
+      <button type="button" class="w-pill" id="weaponCycleBtn">👊 Empty Hands</button>
+      <div class="g-hp-wrap">
+        <div class="g-hp-fill" id="hudHpFill"></div>
+        <div class="g-hp-num" id="hudHpNum">200 / 200</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+  <!-- Hero & Outfit Customizer -->
+  <div class="modal-bg" id="styleModal">
+    <div class="modal-card">
+      <h3 class="m-title">👕 Hero &amp; Stylish Kapde Chunein</h3>
+      <div class="opt-grid" id="outfitGrid"></div>
+      <button type="button" class="m-btn gold" onclick="closeModals()">Save</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-bg" id="settingsModal">
+    <div class="modal-card">
+      <h3 class="m-title">⚙️ Graphics, Voice &amp; Controls</h3>
+      <div class="two-col" style="margin-bottom:10px;">
+        <button type="button" class="m-btn ghost" id="gfxSmoothBtn">Smooth 60 FPS</button>
+        <button type="button" class="m-btn gold" id="gfxUltraBtn">Ultra 3D Shadows</button>
+      </div>
+      <div class="m-sub">Camera Sensitivity: <b id="sensTxt">1.0x</b></div>
+      <input type="range" id="sensSlider" min="0.5" max="2.2" step="0.1" value="1.0" style="width:100%;margin-bottom:12px;" />
+      <button type="button" class="m-btn gold" onclick="closeModals()">OK</button>
+    </div>
+  </div>
+
+  <!-- Pro / FamPay / Owner Unlock Modal -->
+  <div class="modal-bg" id="proModal">
+    <div class="modal-card">
+      <h3 class="m-title">👑 BHARAT CITY PRO &amp; OWNER</h3>
+      <p class="m-sub">Pro/Owner mein <b>Body Pose Control</b>, <b>Sab NPC Mind Control</b>, <b>Instant Car/Tank/Helicopter Spawn</b> aur <b>100% Love</b> unlock hota hai!</p>
+      <div class="qr-box">
+        <div style="font-weight:900;color:#047857;font-size:14px;" id="proAmtText">Exact Pay: ₹49.01</div>
+        <img src="./fampay-qr.png" alt="FamPay QR" />
+        <div style="font-size:11.5px;font-weight:900;">UPI: <span style="color:#1d4ed8;">9202312356@fam</span></div>
+        <div style="font-size:10.5px;color:#475569;">Player ID: <b id="proPidText">LA-00000</b></div>
+      </div>
+      <button type="button" class="m-btn green" id="payUpiBtn">📲 FamPay / UPI se Pay Karein</button>
+      <input type="text" class="modal-input" id="unlockInput" placeholder="PRO-XXXX-XXXX या Owner Code" />
+      <button type="button" class="m-btn gold" id="verifyCodeBtn">🔓 Unlock Karein</button>
+      <button type="button" class="m-btn ghost" onclick="closeModals()">Close</button>
+    </div>
+  </div>
+
+  <!-- OWNER GOD MODE + BODY PART POSE STUDIO (Live Side Panel!) -->
+  <div class="modal-bg" id="ownerStudioModal">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 class="m-title" style="margin:0;color:#f472b6;">👑 OWNER GOD CONTROL</h3>
+        <button type="button" class="g-icon-btn" onclick="closeModals()" style="width:28px;height:28px;font-size:13px;">✕</button>
+      </div>
+
+      <div style="font-size:11.5px;font-weight:900;color:#facc15;margin-bottom:5px;">🧠 Sab Logon Par Control (Mind Control)</div>
+      <div class="two-col">
+        <button type="button" class="m-btn purple" id="owFollowAll">👥 Sab Follow</button>
+        <button type="button" class="m-btn purple" id="owDanceAll">💃 Sab Dance</button>
+        <button type="button" class="m-btn ghost" id="owFreezeAll">🥶 Sab Freeze</button>
+        <button type="button" class="m-btn green" id="owNormalAll">🔄 Normal Life</button>
+      </div>
+      <div class="two-col">
+        <button type="button" class="m-btn gold" id="owClearPolice">⭐ Police Shant</button>
+        <button type="button" class="m-btn gold" id="owGiveGuns">🔫 Sab Guns Do</button>
+      </div>
+
+      <div style="font-size:11.5px;font-weight:900;color:#38bdf8;margin:6px 0 5px;">🚗 Instant Vehicle Spawn (Saamne)</div>
+      <div class="two-col">
+        <button type="button" class="m-btn ghost" id="owSpawnCar">🏎️ Sports Car</button>
+        <button type="button" class="m-btn ghost" id="owSpawnTank">🚜 Army Tank</button>
+      </div>
+      <button type="button" class="m-btn gold" id="owSpawnHeli">🚁 Attack Helicopter Spawn</button>
+
+      <hr style="border:none;border-top:1px solid #334155;margin:8px 0;" />
+      <div style="font-size:11.5px;font-weight:900;color:#f472b6;margin-bottom:6px;">🕺 Hero Body Part Move (Pose Studio)</div>
+      <div class="pose-row"><label><span>Head Turn (गर्दन घुमाएं)</span><span id="pvHeadY">0</span></label><input type="range" id="slHeadY" min="-1.1" max="1.1" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Head Nod (सिर ऊपर-नीचे)</span><span id="pvHeadX">0</span></label><input type="range" id="slHeadX" min="-0.6" max="0.6" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Left Arm (बायां हाथ)</span><span id="pvArmL">0</span></label><input type="range" id="slArmL" min="-2.6" max="2.6" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Right Arm (दायां हाथ)</span><span id="pvArmR">0</span></label><input type="range" id="slArmR" min="-2.6" max="2.6" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Left Leg (बायां पैर)</span><span id="pvLegL">0</span></label><input type="range" id="slLegL" min="-1.4" max="1.4" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Right Leg (दायां पैर)</span><span id="pvLegR">0</span></label><input type="range" id="slLegR" min="-1.4" max="1.4" step="0.05" value="0" /></div>
+      <div class="pose-row"><label><span>Waist Lean (कमर झुकाएं)</span><span id="pvTorso">0</span></label><input type="range" id="slTorso" min="-0.6" max="0.8" step="0.05" value="0" /></div>
+
+      <div class="two-col">
+        <button type="button" class="m-btn purple" id="owPoseDance">🕺 Hero Dance</button>
+        <button type="button" class="m-btn ghost" id="owPoseReset">↩️ Pose Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="modal-bg" id="pauseModal">
+    <div class="modal-card" style="text-align:center;">
+      <h3 class="m-title">⏸ PAUSED</h3>
+      <button type="button" class="m-btn gold" id="resumeBtn">▶ Continue</button>
+      <button type="button" class="m-btn ghost" id="healRespawnBtn">💚 Full HP</button>
+      <button type="button" class="m-btn ghost" id="quitLobbyBtn">🏠 Home Lobby</button>
+    </div>
+  </div>
+
+  <div id="voiceCaption"></div>
+
+  <!-- Three.js 3D Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+          onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';document.head.appendChild(s);"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ================================================================
+       OWNER & PRO CRYPTO VERIFICATION
+       ================================================================ */
+    const UPI_ID = '9202312356@fam';
+    const OWNER_MASTER_HASH = '80A1088B24B84443';
+
+    function mix32(str, seed) {
+      let h = seed >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      h ^= h >>> 16; h = Math.imul(h, 0x85EBCA6B) >>> 0;
+      h ^= h >>> 13; h = Math.imul(h, 0xC2B2AE35) >>> 0;
+      h ^= h >>> 16; return h >>> 0;
+    }
+    function hash64Hex(str) {
+      return mix32(str + '::A92', 0x811C9DC5).toString(16).toUpperCase().padStart(8, '0') +
+             mix32('Z47::' + str, 0x9E3779B9).toString(16).toUpperCase().padStart(8, '0');
+    }
+    function expectedProKey(pid) {
+      const raw = hash64Hex('LA_PRO_UNLOCK_9202312356::' + String(pid).toUpperCase());
+      return 'PRO-' + raw.slice(0, 4) + '-' + raw.slice(4, 8);
+    }
+    function getUniquePayAmt(pid) {
+      return '49.' + String((mix32(pid, 0x1337BEEF) % 99) + 1).padStart(2, '0');
+    }
+
+    /* ================================================================
+       PLAYER SAVE & OUTFIT CATALOG
+       ================================================================ */
+    const SAVE_KEY = 'bharat_city_3d_save_v1';
+    function loadSave() {
+      try {
+        const r = localStorage.getItem(SAVE_KEY);
+        if (r) return JSON.parse(r);
+      } catch (e) {}
+      return {
+        pid: 'LA-' + (10000 + Math.floor(Math.random() * 89999)),
+        tier: 'free',
+        lang: 'hi',
+        voice: true,
+        gfx: 'ultra',
+        sens: 1.0,
+        outfitId: 'denim',
+        cash: 1000
+      };
+    }
+    let save = loadSave();
+    function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+    persist();
+    function isOwner() { return save.tier === 'owner'; }
+    function isPro() { return save.tier === 'pro' || save.tier === 'owner'; }
+
+    const HERO_OUTFITS = [
+      { id: 'denim', name: 'AARAV (Denim Jacket)', gender: 'boy', pro: false, skin: '#d8a07a', top: 0x1d4ed8, accent: 0xf8fafc, pants: 0x1e293b, shoe: 0xf8fafc, hair: 0x161210, beard: true },
+      { id: 'kurta', name: 'KABIR (Royal Kurta)', gender: 'boy', pro: false, skin: '#cf956e', top: 0xb91c1c, accent: 0xfacc15, pants: 0xfef3c7, shoe: 0x451a03, hair: 0x111111, beard: true },
+      { id: 'hoodie', name: 'ROHAN (Street Hoodie)', gender: 'boy', pro: false, skin: '#dba582', top: 0x111827, accent: 0x10b981, pants: 0x334155, shoe: 0xef4444, hair: 0x1f1916, beard: false },
+      { id: 'girl_hero', name: 'ANANYA (Stylish Dress)', gender: 'girl', pro: false, skin: '#e0ad89', top: 0xec4899, accent: 0xfef08a, pants: 0x831843, shoe: 0xf8fafc, hair: 0x1a120e, beard: false },
+      { id: 'boss_suit', name: 'KING BOSS (PRO Suit)', gender: 'boy', pro: true, skin: '#d69d76', top: 0x0f172a, accent: 0xfacc15, pants: 0x090d16, shoe: 0x111111, hair: 0x111111, beard: true },
+      { id: 'commando', name: 'SHADOW OPS (PRO)', gender: 'boy', pro: true, skin: '#c88c66', top: 0x1f3a28, accent: 0xf59e0b, pants: 0x142419, shoe: 0x0f172a, hair: 0x111111, beard: false }
+    ];
+
+    /* ================================================================
+       HINDI / HINGLISH VOICE ENGINE + REALISTIC PROCEDURAL SFX
+       ================================================================ */
+    let lastVoiceAt = 0;
+    function showCaption(txt) {
+      const el = document.getElementById('voiceCaption');
+      el.textContent = txt;
+      el.classList.add('show');
+      clearTimeout(window._capT);
+      window._capT = setTimeout(() => el.classList.remove('show'), 2600);
+    }
+
+    function speakVoice(text, who) {
+      showCaption(text);
+      if (!save.voice || !('speechSynthesis' in window)) return;
+      const now = performance.now();
+      if (now - lastVoiceAt < 900) return;
+      lastVoiceAt = now;
+      try {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices() || [];
+        const hiVoice = voices.find(v => /hi[-_]?IN/i.test(v.lang)) || voices.find(v => /en[-_]?IN/i.test(v.lang));
+        if (hiVoice) utt.voice = hiVoice;
+        utt.lang = hiVoice ? hiVoice.lang : 'hi-IN';
+
+        if (who === 'girl') { utt.pitch = 1.48; utt.rate = 1.06; }
+        else if (who === 'elder') { utt.pitch = 0.72; utt.rate = 0.88; }
+        else if (who === 'police' || who === 'army') { utt.pitch = 0.85; utt.rate = 1.1; }
+        else { utt.pitch = 1.0; utt.rate = 1.04; }
+        utt.volume = 0.95;
+        window.speechSynthesis.speak(utt);
+      } catch (e) {}
+    }
+
+    let actx = null;
+    function playSfx(type) {
+      if (!save.voice) return;
+      try {
+        if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+        if (actx.state === 'suspended') actx.resume();
+        const t = actx.currentTime;
+
+        if (type === 'punch') {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'triangle'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+          g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.12);
+        } else if (type === 'gun' || type === 'boom') {
+          const dur = type === 'boom' ? 0.55 : 0.13;
+          const len = Math.floor(actx.sampleRate * dur);
+          const buf = actx.createBuffer(1, len, actx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.25));
+          const src = actx.createBufferSource(); src.buffer = buf;
+          const flt = actx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(type === 'boom' ? 420 : 2000, t);
+          const g = actx.createGain(); g.gain.setValueAtTime(type === 'boom' ? 0.45 : 0.24, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          src.connect(flt); flt.connect(g); g.connect(actx.destination); src.start(t);
+        } else if (type === 'kiss' || type === 'love') {
+          [523, 659, 784, 1046].forEach((freq, idx) => {
+            const o = actx.createOscillator(), g = actx.createGain();
+            o.type = 'sine'; o.frequency.setValueAtTime(freq, t + idx * 0.07);
+            g.gain.setValueAtTime(0.14, t + idx * 0.07); g.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.07 + 0.25);
+            o.connect(g); g.connect(actx.destination); o.start(t + idx * 0.07); o.stop(t + idx * 0.07 + 0.26);
+          });
+        } else if (type === 'horn') {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'sawtooth'; o.frequency.setValueAtTime(340, t);
+          g.gain.setValueAtTime(0.14, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.29);
+        } else if (type === 'siren') {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(620, t); o.frequency.linearRampToValueAtTime(980, t + 0.25); o.frequency.linearRampToValueAtTime(620, t + 0.5);
+          g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.52);
+          o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.52);
+        } else if (type === 'pickup') {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(660, t); o.frequency.setValueAtTime(990, t + 0.08);
+          g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.21);
+        }
+      } catch (e) {}
+    }
+
+    window.closeModals = function () {
+      document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
+    };
+
+    /* ================================================================
+       UPGRADED SCULPTED 3D CHARACTER ENGINE (NON-ROBLOX SMOOTH ANATOMY!)
+       - LatheGeometry curved torso/dress
+       - Tapered cylindrical limbs + spherical joints
+       - Painted HD Procedural Face Texture (Eyes, Lashes, Eyebrows, Nose Shading, Lips, Blush/Beard)
+       - 3D Sculpted Nose, Ears, Layered Hair, Glasses, Police Cap, Army Helmet!
+       ================================================================ */
+    const faceTexCache = {};
+    function makeFaceTexture(skinHex, gender, isElder, beard) {
+      const key = `${skinHex}_${gender}_${isElder}_${beard}`;
+      if (faceTexCache[key]) return faceTexCache[key];
+
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 256;
+      const g = c.getContext('2d');
+
+      // Base skin fill with subtle warm cheek & jaw shading
+      g.fillStyle = skinHex;
+      g.fillRect(0, 0, 512, 256);
+
+      // Center of face maps at u=0.5 (x=256), v=0.5 (y=128) when headMesh.rotation.y = +Math.PI/2
+      const cx = 256, cy = 128;
+
+      // Soft forehead & chin shading
+      const grad = g.createRadialGradient(cx, cy - 8, 12, cx, cy, 85);
+      grad.addColorStop(0, 'rgba(255,245,235,0.14)');
+      grad.addColorStop(1, 'rgba(80,40,20,0.16)');
+      g.fillStyle = grad;
+      g.fillRect(cx - 100, cy - 90, 200, 180);
+
+      // Cheek blush for girls
+      if (gender === 'girl') {
+        g.fillStyle = 'rgba(244, 114, 182, 0.24)';
+        g.beginPath(); g.ellipse(cx - 34, cy + 12, 16, 10, 0, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(cx + 34, cy + 12, 16, 10, 0, 0, Math.PI * 2); g.fill();
+      }
+
+      // Expressive Eyes (White Sclera + Iris + Pupil + Eyelid + Catchlight!)
+      [-23, 23].forEach((ox) => {
+        const ex = cx + ox, ey = cy - 10;
+        // Soft eye socket shadow
+        g.fillStyle = 'rgba(70, 35, 20, 0.16)';
+        g.beginPath(); g.ellipse(ex, ey, 14, 9, 0, 0, Math.PI * 2); g.fill();
+        // Sclera
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.ellipse(ex, ey, 11.5, gender === 'girl' ? 7.8 : 6.4, 0, 0, Math.PI * 2); g.fill();
+        // Iris
+        g.fillStyle = gender === 'girl' ? '#3b2214' : '#26180f';
+        g.beginPath(); g.arc(ex, ey, 5.6, 0, Math.PI * 2); g.fill();
+        // Pupil
+        g.fillStyle = '#09090b';
+        g.beginPath(); g.arc(ex, ey, 2.9, 0, Math.PI * 2); g.fill();
+        // Glossy eye sparkle
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.arc(ex - 2, ey - 2, 1.7, 0, Math.PI * 2); g.fill();
+        // Upper eyeliner / lashes
+        g.strokeStyle = '#181210';
+        g.lineWidth = gender === 'girl' ? 3.2 : 2.3;
+        g.beginPath(); g.arc(ex, ey + 1, 11.5, Math.PI * 1.12, Math.PI * 1.88); g.stroke();
+        // Eyebrow
+        g.strokeStyle = isElder ? '#e2e8f0' : '#1b1410';
+        g.lineWidth = gender === 'girl' ? 2.6 : 4.0;
+        g.lineCap = 'round';
+        g.beginPath();
+        g.moveTo(ex - 12, ey - 12);
+        g.quadraticCurveTo(ex, ey - 16, ex + 12, ey - 12);
+        g.stroke();
+      });
+
+      // Nose bridge soft highlight & nostrils
+      g.fillStyle = 'rgba(255,255,255,0.16)';
+      g.fillRect(cx - 2.5, cy - 6, 5, 18);
+      g.fillStyle = 'rgba(70,35,20,0.45)';
+      g.beginPath(); g.ellipse(cx - 5, cy + 14, 3, 2, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(cx + 5, cy + 14, 3, 2, 0, 0, Math.PI * 2); g.fill();
+
+      // Elder Mustache / Young Stylist Beard
+      if (isElder) {
+        g.fillStyle = '#e5e7eb';
+        g.beginPath(); g.ellipse(cx, cy + 22, 18, 5.5, 0, 0, Math.PI * 2); g.fill();
+      } else if (beard && gender === 'boy') {
+        g.fillStyle = 'rgba(24, 18, 15, 0.42)';
+        g.beginPath(); g.arc(cx, cy + 24, 28, 0.15, Math.PI - 0.15); g.fill();
+        // Mustache strip
+        g.fillStyle = 'rgba(20, 15, 12, 0.65)';
+        g.beginPath(); g.ellipse(cx, cy + 21, 14, 3.2, 0, 0, Math.PI * 2); g.fill();
+      }
+
+      // Contoured Lips / Smile
+      g.fillStyle = gender === 'girl' ? '#db2777' : '#9c5646';
+      g.beginPath();
+      g.ellipse(cx, cy + 31, gender === 'girl' ? 12 : 11, gender === 'girl' ? 4.5 : 3.4, 0, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = 'rgba(60, 20, 20, 0.45)';
+      g.lineWidth = 1.4;
+      g.beginPath();
+      g.moveTo(cx - 11, cy + 31);
+      g.quadraticCurveTo(cx, cy + 33.5, cx + 11, cy + 31);
+      g.stroke();
+
+      // Elder forehead wrinkles
+      if (isElder) {
+        g.strokeStyle = 'rgba(90, 55, 35, 0.35)';
+        g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(cx - 24, cy - 32); g.lineTo(cx + 24, cy - 32); g.stroke();
+        g.beginPath(); g.moveTo(cx - 18, cy - 38); g.lineTo(cx + 18, cy - 38); g.stroke();
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      faceTexCache[key] = tex;
+      return tex;
+    }
+
+    function buildGun3D(type) {
+      const grp = new THREE.Group();
+      const dark = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
+      const wood = new THREE.MeshStandardMaterial({ color: 0x6b3e26, roughness: 0.65 });
+      if (type === 'pistol') {
+        const slide = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.28), dark);
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.08), dark);
+        grip.position.set(0, -0.09, 0.08); grip.rotation.x = 0.25;
+        grp.add(slide, grip);
+      } else if (type === 'rpg') {
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.05, 10), new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.6 }));
+        tube.rotation.x = Math.PI / 2;
+        const warhead = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 10), new THREE.MeshStandardMaterial({ color: 0x991b1b }));
+        warhead.rotation.x = -Math.PI / 2; warhead.position.z = -0.62;
+        grp.add(tube, warhead);
+      } else {
+        // AK-47
+        const rec = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.11, 0.44), dark);
+        const brl = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.42, 8), dark);
+        brl.rotation.x = Math.PI / 2; brl.position.set(0, 0.02, -0.40);
+        const stk = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.10, 0.28), wood);
+        stk.position.set(0, -0.02, 0.32);
+        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.22, 0.08), dark);
+        mag.position.set(0, -0.15, -0.05); mag.rotation.x = 0.24;
+        grp.add(rec, brl, stk, mag);
+      }
+      const fl = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+      fl.position.set(0, 0.02, -0.65); fl.visible = false;
+      grp.add(fl);
+      grp.userData.flash = fl;
+      return grp;
+    }
+
+    function buildSculptedHuman(cfg) {
+      const root = new THREE.Group();
+      const gender = cfg.gender || 'boy';
+      const isElder = !!cfg.elder;
+      const role = cfg.role || 'civilian'; // 'hero' | 'civilian' | 'police' | 'army'
+
+      const skinCol = new THREE.Color(cfg.skin || '#d8a07a');
+      const skinMat = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.58 });
+      const topMat = new THREE.MeshStandardMaterial({ color: cfg.top, roughness: 0.62 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: cfg.accent || 0xfacc15, roughness: 0.5 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: cfg.pants, roughness: 0.72 });
+      const shoeMat = new THREE.MeshStandardMaterial({ color: cfg.shoe || 0x111827, roughness: 0.5 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: isElder ? 0xdbe0e6 : (cfg.hair || 0x15110f), roughness: 0.75 });
+
+      const bodyPivot = new THREE.Group();
+      root.add(bodyPivot);
+
+      // ---- 1. SCULPTED ANATOMICAL TORSO (LatheGeometry - Zero Boxy Roblox Look!) ----
+      const waistGrp = new THREE.Group();
+      waistGrp.position.y = 0.94;
+      bodyPivot.add(waistGrp);
+
+      let torsoProfile;
+      if (gender === 'girl') {
+        torsoProfile = [
+          new THREE.Vector2(0.01, -0.02),
+          new THREE.Vector2(0.19, 0.02),  // hips
+          new THREE.Vector2(0.135, 0.22), // slender waist
+          new THREE.Vector2(0.185, 0.44), // chest
+          new THREE.Vector2(0.165, 0.56), // upper shoulders
+          new THREE.Vector2(0.075, 0.62)  // collar
+        ];
+      } else {
+        torsoProfile = [
+          new THREE.Vector2(0.01, -0.02),
+          new THREE.Vector2(0.18, 0.02),  // pelvis
+          new THREE.Vector2(0.165, 0.20), // waist
+          new THREE.Vector2(0.225, 0.48), // broad athletic chest
+          new THREE.Vector2(0.21, 0.59),  // shoulders
+          new THREE.Vector2(0.085, 0.65)  // collar
+        ];
+      }
+      const torsoMesh = new THREE.Mesh(new THREE.LatheGeometry(torsoProfile, 16), topMat);
+      torsoMesh.scale.set(1.12, 1.0, 0.72);
+      torsoMesh.castShadow = true;
+      waistGrp.add(torsoMesh);
+
+      // Stylish Skirt / Kurti flare for Girls OR Jacket Lapels / Belt for Boys
+      if (gender === 'girl') {
+        const skirtGeo = new THREE.CylinderGeometry(0.18, 0.30, 0.42, 16);
+        const skirt = new THREE.Mesh(skirtGeo, pantsMat);
+        skirt.position.y = -0.14; skirt.scale.set(1.08, 1, 0.88);
+        skirt.castShadow = true;
+        waistGrp.add(skirt);
+      } else {
+        const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.188, 0.188, 0.065, 16), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 }));
+        belt.scale.set(1.12, 1, 0.74);
+        belt.position.y = 0.04;
+        waistGrp.add(belt);
+        // Chest jacket stripe / pocket badge
+        const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.08, 12), accentMat);
+        collar.position.y = 0.61;
+        waistGrp.add(collar);
+      }
+
+      // Smooth Neck
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.082, 0.15, 12), skinMat);
+      neck.position.y = 0.67;
+      waistGrp.add(neck);
+
+      // ---- 2. HIGH-DETAIL SCULPTED HEAD + HD PAINTED FACE + 3D NOSE/EARS/HAIR ----
+      const headGrp = new THREE.Group();
+      headGrp.position.set(0, 0.85, 0);
+      waistGrp.add(headGrp);
+
+      const faceTex = makeFaceTexture(cfg.skin || '#d8a07a', gender, isElder, !!cfg.beard);
+      const faceMat = new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.55 });
+      const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.195, 22, 18), faceMat);
+      headMesh.scale.set(0.88, 1.08, 0.94);
+      headMesh.rotation.y = Math.PI / 2; // Aligns canvas center (u=0.5) to exact forward -Z!
+      headMesh.castShadow = true;
+      headGrp.add(headMesh);
+
+      // Subtle 3D Nose (matching the painted face center at -Z)
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.06, 8), skinMat);
+      nose.rotation.x = -Math.PI / 2;
+      nose.position.set(0, -0.012, -0.185);
+      headGrp.add(nose);
+
+      // 3D Sculpted Ears
+      const earGeo = new THREE.SphereGeometry(0.04, 10, 8);
+      const earL = new THREE.Mesh(earGeo, skinMat);
+      earL.scale.set(0.45, 1.2, 0.75); earL.position.set(-0.172, -0.01, 0.01);
+      const earR = earL.clone(); earR.position.x = 0.172;
+      headGrp.add(earL, earR);
+
+      // Hairstyles / Police Cap / Army Helmet / Elder Glasses
+      if (role === 'police') {
+        const capCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.17, 0.10, 16), new THREE.MeshStandardMaterial({ color: 0x8b6f47 }));
+        capCrown.position.y = 0.15;
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        visor.position.set(0, 0.10, -0.14);
+        headGrp.add(capCrown, visor);
+      } else if (role === 'army') {
+        const helm = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), new THREE.MeshStandardMaterial({ color: 0x2d4a2b, roughness: 0.7 }));
+        helm.position.y = 0.03;
+        headGrp.add(helm);
+      } else if (gender === 'girl') {
+        // Lush Long Flowing Hair + Back Ponytail/Locks!
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(0.205, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
+        crown.scale.set(0.92, 1.05, 0.98); crown.position.set(0, 0.025, 0.012);
+        const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.19, 0.42, 14), hairMat);
+        backHair.position.set(0, -0.14, 0.11); backHair.rotation.x = 0.18;
+        const sideL = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.28, 10), hairMat);
+        sideL.position.set(-0.15, -0.08, -0.02);
+        const sideR = sideL.clone(); sideR.position.x = 0.15;
+        headGrp.add(crown, backHair, sideL, sideR);
+      } else {
+        // Modern Layered Styled Male Hair
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(0.202, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.54), hairMat);
+        crown.scale.set(0.90, 1.05, 0.96); crown.position.set(0, 0.035, 0.015);
+        const wave = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), hairMat);
+        wave.scale.set(1.45, 0.52, 0.9); wave.position.set(0.01, 0.185, -0.05);
+        headGrp.add(crown, wave);
+      }
+
+      if (isElder) {
+        // Round Reading Glasses!
+        const rimMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+        [-0.068, 0.068].forEach(gx => {
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.006, 8, 16), rimMat);
+          rim.position.set(gx, 0.015, -0.188);
+          headGrp.add(rim);
+        });
+      }
+
+      // ---- 3. SMOOTH TAPERED ARMS & HANDS ----
+      function makeArm(side) {
+        const arm = new THREE.Group();
+        arm.position.set(side * (gender === 'girl' ? 0.23 : 0.27), 0.53, 0);
+        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.072, 12, 10), topMat);
+        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.052, 0.30, 12), topMat);
+        upper.position.y = -0.15; upper.castShadow = true;
+        const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), skinMat);
+        elbow.position.y = -0.30;
+        const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.26, 12), skinMat);
+        fore.position.y = -0.43; fore.castShadow = true;
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048, 10, 8), skinMat);
+        hand.scale.set(0.85, 1.2, 0.7); hand.position.y = -0.58;
+        arm.add(shoulder, upper, elbow, fore, hand);
+        return arm;
+      }
+      const armL = makeArm(-1);
+      const armR = makeArm(1);
+      waistGrp.add(armL, armR);
+
+      // Optional Gun Mount in Right Hand (hidden when unarmed!)
+      const gunMount = new THREE.Group();
+      gunMount.position.set(0, -0.58, -0.12);
+      armR.add(gunMount);
+
+      // ---- 4. SMOOTH TAPERED LEGS & SLEEK SHOES ----
+      function makeLeg(side) {
+        const leg = new THREE.Group();
+        leg.position.set(side * (gender === 'girl' ? 0.105 : 0.12), 0.94, 0);
+        const hip = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), pantsMat);
+        const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.084, 0.066, 0.44, 12), pantsMat);
+        thigh.position.y = -0.22; thigh.castShadow = true;
+        const knee = new THREE.Mesh(new THREE.SphereGeometry(0.064, 10, 8), gender === 'girl' ? skinMat : pantsMat);
+        knee.position.y = -0.44;
+        const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.048, 0.42, 12), gender === 'girl' ? skinMat : pantsMat);
+        shin.position.y = -0.65; shin.castShadow = true;
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.072, 12, 8), shoeMat);
+        shoe.scale.set(0.88, 0.62, 1.65); shoe.position.set(0, -0.88, -0.04);
+        leg.add(hip, thigh, knee, shin, shoe);
+        return leg;
+      }
+      const legL = makeLeg(-1);
+      const legR = makeLeg(1);
+      bodyPivot.add(legL, legR);
+
+      // Elder Walking Cane
+      if (isElder) {
+        const cane = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.015, 0.92, 8), new THREE.MeshStandardMaterial({ color: 0x5c3a21 }));
+        cane.position.set(0, -0.68, -0.15);
+        armR.add(cane);
+      }
+
+      root.userData = {
+        bodyPivot, waistGrp, headGrp, armL, armR, legL, legR, gunMount,
+        gunMesh: null, walkPhase: Math.random() * 6, punchAnim: 0, kissAnim: 0
+      };
+      return root;
+    }
+
+    function setHumanGun(mesh, gunType) {
+      const gm = mesh.userData.gunMount;
+      while (gm.children.length) gm.remove(gm.children[0]);
+      if (!gunType || gunType === 'fist') {
+        mesh.userData.gunMesh = null;
+        return;
+      }
+      const g = buildGun3D(gunType);
+      gm.add(g);
+      mesh.userData.gunMesh = g;
+    }
+
+    /* ================================================================
+       3D VEHICLES: SPORTS CAR, ARMY BATTLE TANK, ATTACK HELICOPTER
+       ================================================================ */
+    function buildCar3D(colorHex) {
+      const grp = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.55, roughness: 0.25 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.1 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.85 });
+      const rimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.2 });
+
+      // Sleek Lower Chassis
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.65, 4.4), bodyMat);
+      base.position.y = 0.68; base.castShadow = true; base.receiveShadow = true;
+      grp.add(base);
+
+      // Tapered Cabin Roof
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.62, 2.2), glassMat);
+      cabin.position.set(0, 1.24, 0.15); cabin.castShadow = true;
+      grp.add(cabin);
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.10, 1.95), bodyMat);
+      roof.position.set(0, 1.56, 0.18);
+      grp.add(roof);
+
+      // Headlights & Taillights
+      const headMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+      const tailMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+      [-0.72, 0.72].forEach(lx => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.08), headMat);
+        hl.position.set(lx, 0.72, -2.21); grp.add(hl);
+        const tl = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.08), tailMat);
+        tl.position.set(lx, 0.74, 2.21); grp.add(tl);
+      });
+
+      // 4 Rotating Wheels
+      const wheels = [];
+      [[-1.08, -1.35], [1.08, -1.35], [-1.08, 1.35], [1.08, 1.35]].forEach(([wx, wz]) => {
+        const w = new THREE.Group();
+        w.position.set(wx, 0.40, wz);
+        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.28, 14), wheelMat);
+        tire.rotation.z = Math.PI / 2;
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.30, 10), rimMat);
+        rim.rotation.z = Math.PI / 2;
+        w.add(tire, rim);
+        grp.add(w);
+        wheels.push(w);
+      });
+      grp.userData.wheels = wheels;
+      return grp;
+    }
+
+    function buildTank3D() {
+      const grp = new THREE.Group();
+      const camo = new THREE.MeshStandardMaterial({ color: 0x3b4d32, roughness: 0.78 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x1c211c, roughness: 0.9 });
+
+      // Heavy Hull
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.15, 5.4), camo);
+      hull.position.y = 1.05; hull.castShadow = true; hull.receiveShadow = true;
+      grp.add(hull);
+
+      // Left & Right Armored Tracks
+      [-1.55, 1.55].forEach(tx => {
+        const tr = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.95, 5.7), dark);
+        tr.position.set(tx, 0.55, 0); tr.castShadow = true;
+        grp.add(tr);
+      });
+
+      // Rotating Turret + Long Cannon Barrel
+      const turret = new THREE.Group();
+      turret.position.set(0, 1.95, 0.15);
+      const tBody = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.85, 8), camo);
+      tBody.castShadow = true;
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 4.2, 10), dark);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(0, 0.08, -2.55);
+      barrel.castShadow = true;
+      turret.add(tBody, barrel);
+      grp.add(turret);
+      grp.userData.turret = turret;
+      return grp;
+    }
+
+    function buildHeli3D() {
+      const grp = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.35 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.85, roughness: 0.1, transparent: true, opacity: 0.78 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+
+      // Sleek Fuselage + Glass Cockpit
+      const fuse = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12), bodyMat);
+      fuse.scale.set(0.95, 0.92, 2.0); fuse.position.set(0, 1.65, 0); fuse.castShadow = true;
+      const cock = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 10), glassMat);
+      cock.scale.set(0.88, 0.78, 1.2); cock.position.set(0, 1.72, -1.4);
+      grp.add(fuse, cock);
+
+      // Tail Boom + Fin
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.42, 4.5, 10), bodyMat);
+      tail.rotation.x = Math.PI / 2; tail.position.set(0, 1.78, 3.8);
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.4, 0.9), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+      fin.position.set(0, 2.15, 5.8);
+      grp.add(tail, fin);
+
+      // Landing Skids
+      [-1.05, 1.05].forEach(sx => {
+        const skid = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.6, 8), dark);
+        skid.rotation.x = Math.PI / 2; skid.position.set(sx, 0.12, -0.2);
+        const strut1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), dark);
+        strut1.position.set(sx, 0.65, -0.9);
+        const strut2 = strut1.clone(); strut2.position.z = 0.7;
+        grp.add(skid, strut1, strut2);
+      });
+
+      // Weapon Rocket Pods on Sides
+      [-1.45, 1.45].forEach(px => {
+        const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.2, 10), new THREE.MeshStandardMaterial({ color: 0x991b1b }));
+        pod.rotation.x = Math.PI / 2; pod.position.set(px, 1.25, -0.4);
+        grp.add(pod);
+      });
+
+      // Main Spinning Rotor
+      const mainRotor = new THREE.Group();
+      mainRotor.position.set(0, 3.05, 0);
+      const b1 = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.06, 0.28), dark);
+      const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 7.6), dark);
+      mainRotor.add(b1, b2);
+      grp.add(mainRotor);
+
+      // Tail Spinning Rotor
+      const tailRotor = new THREE.Group();
+      tailRotor.position.set(0.2, 2.2, 5.9);
+      const tb = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.35, 0.14), dark);
+      tailRotor.add(tb);
+      grp.add(tailRotor);
+
+      grp.userData.mainRotor = mainRotor;
+      grp.userData.tailRotor = tailRotor;
+      return grp;
+    }
+
+    /* ================================================================
+       REAL-WORLD INDIAN OPEN WORLD CITY + MOUNTAINS + ARMY BASE
+       ================================================================ */
+    const WORLD_SIZE = 440;
+    const HALF_W = WORLD_SIZE / 2;
+    let scene, camera, renderer, worldGroup, lobbyGroup, matchGroup;
+    let lobbyHero = null, lobbyYaw = 0.22, lobbyZoomFace = false;
+    let state = 'lobby';
+    let colliders = [];
+    let G = null;
+
+    function getTerrainHeight(x, z) {
+      // Flat City + Road Cross + Army Base area within radius 92
+      const d = Math.hypot(x, z);
+      const cityFlat = Math.max(0, Math.min(1, (d - 88) / 36));
+      let h =
+        Math.sin(x * 0.022) * Math.cos(z * 0.021) * 12 +
+        Math.cos((x + z) * 0.018) * 7;
+      const edge = Math.max(Math.abs(x), Math.abs(z));
+      if (edge > 140) {
+        const t = (edge - 140) / 75;
+        h += t * t * 34;
+      }
+      return h * cityFlat;
+    }
+
+    function makeTex(bg, dot, sz, rep) {
+      const c = document.createElement('canvas'); c.width = c.height = sz;
+      const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, sz, sz);
+      for (let i = 0; i < sz * 8; i++) {
+        g.fillStyle = dot; g.globalAlpha = 0.08 + Math.random() * 0.14;
+        g.fillRect(Math.random() * sz, Math.random() * sz, 3 + Math.random() * 6, 3 + Math.random() * 6);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep);
+      return t;
+    }
+
+    function buildWorld3D() {
+      worldGroup = new THREE.Group();
+      colliders = [];
+
+      // Terrain Mesh
+      const geo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 100, 100);
+      geo.rotateX(-Math.PI / 2);
+      const pos = geo.attributes.position;
+      const cols = [];
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i), y = getTerrainHeight(x, z);
+        pos.setY(i, y);
+        const c = new THREE.Color();
+        if (y > 14) c.setHex(0x646b73);
+        else if (y > 5) c.setHex(0x687c3e);
+        else c.setHex(0x4b7a38);
+        cols.push(c.r, c.g, c.b);
+      }
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+      geo.computeVertexNormals();
+      const terr = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: makeTex('#fff', '#000', 128, 34), roughness: 0.92 }));
+      terr.receiveShadow = true;
+      worldGroup.add(terr);
+
+      // Indian Asphalt City Roads (Ring Road + Cross Highway!)
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x262b34, roughness: 0.88 });
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+      // North-South Road
+      const rNS = new THREE.Mesh(new THREE.PlaneGeometry(13, 172), roadMat);
+      rNS.rotation.x = -Math.PI / 2; rNS.position.set(0, 0.06, 0); rNS.receiveShadow = true;
+      // East-West Road
+      const rEW = new THREE.Mesh(new THREE.PlaneGeometry(172, 13), roadMat);
+      rEW.rotation.x = -Math.PI / 2; rEW.position.set(0, 0.07, 0); rEW.receiveShadow = true;
+      worldGroup.add(rNS, rEW);
+
+      // Dashed yellow dividers
+      for (let k = -75; k <= 75; k += 12) {
+        if (Math.abs(k) < 10) continue;
+        const d1 = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 5), lineMat);
+        d1.rotation.x = -Math.PI / 2; d1.position.set(0, 0.09, k);
+        const d2 = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.35), lineMat);
+        d2.rotation.x = -Math.PI / 2; d2.position.set(k, 0.09, 0);
+        worldGroup.add(d1, d2);
+      }
+
+      // Helipad Concrete Pad at Army Base (x=54, z=-52)
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.2, 0.25, 24), new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 }));
+      pad.position.set(54, 0.12, -52); pad.receiveShadow = true;
+      const hRing = new THREE.Mesh(new THREE.RingGeometry(5.6, 6.4, 24), new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide }));
+      hRing.rotation.x = -Math.PI / 2; hRing.position.set(54, 0.27, -52);
+      worldGroup.add(pad, hRing);
+
+      // Colorful Indian City Buildings & Village Houses
+      const winMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.6, roughness: 0.2 });
+      const bSpecs = [
+        [-28, -28, 12, 9, 10, 0xe7d3b0], [28, -28, 11, 7, 10, 0xdca583],
+        [-28, 28, 13, 12, 11, 0xcbd5e1], [28, 28, 12, 8, 10, 0xfde68a],
+        [-58, -24, 10, 6, 9, 0xfecdd3], [-58, 26, 12, 10, 10, 0xbfdbfe],
+        [62, 28, 11, 7, 10, 0xd9f99d], [-26, -62, 14, 14, 12, 0xe2e8f0],
+        [-24, 62, 12, 9, 10, 0xfed7aa], [26, 62, 12, 11, 10, 0xe9d5ff]
+      ];
+      bSpecs.forEach(([bx, bz, w, h, d, col]) => {
+        const gy = getTerrainHeight(bx, bz);
+        const grp = new THREE.Group(); grp.position.set(bx, gy, bz);
+        const bm = new THREE.MeshStandardMaterial({ color: col, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bm);
+        body.position.y = h / 2; body.castShadow = true; body.receiveShadow = true;
+        grp.add(body);
+        // Parapet roof
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.5, d + 0.4), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        roof.position.y = h + 0.2; grp.add(roof);
+        // Windows grid on front/back
+        for (let wy = 2.6; wy < h - 1; wy += 3) {
+          [-w * 0.26, 0, w * 0.26].forEach(wx => {
+            const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.3, d + 0.15), winMat);
+            w1.position.set(wx, wy, 0); grp.add(w1);
+          });
+        }
+        worldGroup.add(grp);
+        colliders.push({ x: bx, z: bz, r: Math.max(w, d) * 0.56 });
+      });
+
+      // 3D Rocks (Chattan) & Trees around City & Mountains
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x5c636b, roughness: 0.92, flatShading: true });
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.92 });
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d6a2e, roughness: 0.85, flatShading: true });
+
+      let s = 99;
+      function sr() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }
+      for (let i = 0; i < 60; i++) {
+        const rx = (sr() - 0.5) * 350, rz = (sr() - 0.5) * 350;
+        if (Math.hypot(rx, rz) < 82) continue;
+        const ry = getTerrainHeight(rx, rz);
+        const sc = 1.6 + sr() * 3.8;
+        const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(sc, 0), rockMat);
+        rk.position.set(rx, ry + sc * 0.35, rz); rk.scale.set(1.2, 0.75, 1.1);
+        rk.castShadow = true; worldGroup.add(rk);
+        colliders.push({ x: rx, z: rz, r: sc * 0.9 });
+      }
+      for (let i = 0; i < 75; i++) {
+        const tx = (sr() - 0.5) * 340, tz = (sr() - 0.5) * 340;
+        if (Math.abs(tx) < 12 || Math.abs(tz) < 12 || (tx > 38 && tz < -36 && tx < 74 && tz > -72)) continue;
+        let bad = false;
+        for (const c of colliders) if (Math.hypot(tx - c.x, tz - c.z) < c.r + 3) { bad = true; break; }
+        if (bad) continue;
+        const ty = getTerrainHeight(tx, tz);
+        const tr = new THREE.Group(); tr.position.set(tx, ty, tz);
+        const h = 3.2 + sr() * 2.2;
+        const tk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.36, h, 7), trunkMat);
+        tk.position.y = h / 2; tk.castShadow = true;
+        const cr = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9 + sr() * 1.1, 1), leafMat);
+        cr.position.y = h + 1.2; cr.castShadow = true;
+        tr.add(tk, cr); worldGroup.add(tr);
+        colliders.push({ x: tx, z: tz, r: 0.65 });
+      }
+
+      // Clouds
+      const clMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.72 });
+      for (let i = 0; i < 14; i++) {
+        const cl = new THREE.Mesh(new THREE.BoxGeometry(20 + sr() * 16, 3.2, 12 + sr() * 8), clMat);
+        cl.position.set((sr() - 0.5) * 400, 86 + sr() * 26, (sr() - 0.5) * 400);
+        worldGroup.add(cl);
+      }
+
+      scene.add(worldGroup);
+    }
+
+    function buildLobbyHero() {
+      if (lobbyGroup) scene.remove(lobbyGroup);
+      lobbyGroup = new THREE.Group();
+      lobbyGroup.position.set(0, 0.08, 0);
+
+      const pod = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.7, 0.25, 20), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 }));
+      pod.position.y = 0.12; lobbyGroup.add(pod);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.035, 8, 32), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.25; lobbyGroup.add(ring);
+
+      const out = HERO_OUTFITS.find(o => o.id === save.outfitId) || HERO_OUTFITS[0];
+      lobbyHero = buildSculptedHuman({ ...out, role: 'hero' });
+      lobbyHero.position.y = 0.24;
+      lobbyHero.rotation.y = Math.PI + lobbyYaw;
+      lobbyGroup.add(lobbyHero);
+      scene.add(lobbyGroup);
+    }
+
+    /* ================================================================
+       START LIVING OPEN WORLD SANDBOX
+       ================================================================ */
+    function startOpenWorld() {
+      closeModals();
+      if (lobbyGroup) lobbyGroup.visible = false;
+      if (matchGroup) scene.remove(matchGroup);
+      matchGroup = new THREE.Group();
+      scene.add(matchGroup);
+
+      const out = HERO_OUTFITS.find(o => o.id === save.outfitId) || HERO_OUTFITS[0];
+      const pMesh = buildSculptedHuman({ ...out, role: 'hero' });
+      pMesh.position.set(0, 0.08, 12);
+      matchGroup.add(pMesh);
+
+      G = {
+        player: {
+          mesh: pMesh,
+          x: 0, y: 0.08, z: 12, vy: 0,
+          yaw: 0, pitch: -0.14,
+          hp: 200, maxHp: 200,
+          grounded: true,
+          weapons: isOwner() ? ['fist', 'pistol', 'ak47', 'rpg'] : ['fist'],
+          curW: 0, // UNARMED by default!
+          atkCd: 0,
+          vehicle: null,
+          kissingNpc: null, kissTimer: 0,
+          customPose: { headY: 0, headX: 0, armL: 0, armR: 0, legL: 0, legR: 0, torso: 0, dance: false }
+        },
+        freeLook: false,
+        freeYaw: 0,
+        wanted: 0, wantedCool: 0,
+        crowdMode: 'normal', // 'normal' | 'follow' | 'dance' | 'freeze'
+        npcs: [],
+        vehicles: [],
+        pickups: [],
+        projectiles: [],
+        fx: []
+      };
+
+      // 1. Spawn Diverse Peaceful NPCs: Boys, Girls, Elders, Police, Army!
+      const npcConfigs = [
+        // Stylish Girls (Romantic interactive!)
+        { name: 'Priya', gender: 'girl', role: 'civilian', skin: '#e3b08e', top: 0xec4899, pants: 0x831843, x: -7, z: 4 },
+        { name: 'Riya', gender: 'girl', role: 'civilian', skin: '#dca580', top: 0x8b5cf6, pants: 0x3b0764, x: 9, z: -6 },
+        { name: 'Neha', gender: 'girl', role: 'civilian', skin: '#e8ba98', top: 0xf43f5e, pants: 0x1e293b, x: -16, z: -12 },
+        { name: 'Simran', gender: 'girl', role: 'civilian', skin: '#d89f78', top: 0x14b8a6, pants: 0x134e4a, x: 18, z: 14 },
+        { name: 'Pooja', gender: 'girl', role: 'civilian', skin: '#e0ad89', top: 0xf59e0b, pants: 0x78350f, x: -12, z: 24 },
+        // Stylish Boys
+        { name: 'Rahul', gender: 'boy', role: 'civilian', skin: '#cf956e', top: 0x2563eb, pants: 0x1e293b, x: 11, z: 10 },
+        { name: 'Aman', gender: 'boy', role: 'civilian', skin: '#d8a07a', top: 0x16a34a, pants: 0x0f172a, x: -14, z: 14 },
+        { name: 'Vikky', gender: 'boy', role: 'civilian', skin: '#c48660', top: 0xea580c, pants: 0x1e293b, x: 20, z: -16 },
+        // Elders (Budhe Log with white hair, glasses & cane!)
+        { name: 'Dada Ji', gender: 'boy', elder: true, role: 'civilian', skin: '#cfa07e', top: 0xfef3c7, pants: 0xf5f5f4, x: -9, z: -9 },
+        { name: 'Chacha Ji', gender: 'boy', elder: true, role: 'civilian', skin: '#c49270', top: 0xe2e8f0, pants: 0xd6d3d1, x: 14, z: 22 },
+        // Police Officers (Khaki Uniform & Cap - peaceful until you break law!)
+        { name: 'Inspector Raj', gender: 'boy', role: 'police', skin: '#c98e68', top: 0x9a7b4f, pants: 0x7a5f3b, x: -20, z: 2 },
+        { name: 'Police Ajay', gender: 'boy', role: 'police', skin: '#cf956e', top: 0x9a7b4f, pants: 0x7a5f3b, x: 22, z: -2 },
+        // Army Soldiers guarding Army Base (Tank & Helicopter!)
+        { name: 'Major Dev', gender: 'boy', role: 'army', skin: '#c68b65', top: 0x2f4830, pants: 0x223322, x: 44, z: -44 },
+        { name: 'Commando Jai', gender: 'boy', role: 'army', skin: '#c98e68', top: 0x2f4830, pants: 0x223322, x: 60, z: -42 }
+      ];
+
+      npcConfigs.forEach((nc, idx) => {
+        const mesh = buildSculptedHuman(nc);
+        const y = getTerrainHeight(nc.x, nc.z);
+        mesh.position.set(nc.x, y, nc.z);
+        if (nc.role === 'police') setHumanGun(mesh, 'pistol');
+        if (nc.role === 'army') setHumanGun(mesh, 'ak47');
+        matchGroup.add(mesh);
+
+        G.npcs.push({
+          id: idx, name: nc.name, gender: nc.gender, elder: !!nc.elder, role: nc.role,
+          mesh, x: nc.x, y, z: nc.z, yaw: Math.random() * 6.28,
+          hp: nc.role === 'army' ? 140 : (nc.role === 'police' ? 110 : 80),
+          alive: true, hostile: false, loved: false, rejected: false, following: false,
+          likesPlayer: Math.random() < 0.58, // In normal mode ~58% girls like you, rest reject!
+          dir: Math.random() * 6.28, moveT: 1 + Math.random() * 3, atkCd: 0,
+          knockVx: 0, knockVz: 0, knockVy: 0
+        });
+      });
+
+      // 2. Spawn Drivable Cars (with NPC drivers!), Army Tank & Attack Helicopter!
+      spawnVehicle('car', 0xef4444, 4, -22, 0, true);     // Red Sports Car on road
+      spawnVehicle('car', 0x2563eb, -4, 34, Math.PI, true); // Blue City Car
+      spawnVehicle('car', 0xfacc15, -36, 4, Math.PI / 2, true); // Yellow Taxi
+      spawnVehicle('tank', 0x3b4d32, 42, -52, 0.4, false); // Army Tank at Army Base
+      spawnVehicle('heli', 0x1e293b, 54, -52, 0, false);   // Attack Helicopter on Helipad!
+
+      // 3. Optional Weapon Pickups (Take ONLY if you want!)
+      const wpSpots = [
+        { type: 'pistol', label: '🔫 Pistol', x: -16, z: -20, col: 0x38bdf8 },
+        { type: 'ak47', label: '🔫 AK-47 Rifle', x: 38, z: -36, col: 0xfacc15 },
+        { type: 'rpg', label: '🚀 Rocket Launcher', x: 50, z: -60, col: 0xef4444 }
+      ];
+      wpSpots.forEach(w => {
+        const grp = new THREE.Group();
+        const gMesh = buildGun3D(w.type); gMesh.scale.set(1.5, 1.5, 1.5);
+        const halo = new THREE.Mesh(new THREE.RingGeometry(0.65, 0.85, 18), new THREE.MeshBasicMaterial({ color: w.col, side: THREE.DoubleSide }));
+        halo.rotation.x = -Math.PI / 2; halo.position.y = -0.5;
+        grp.add(gMesh, halo);
+        grp.position.set(w.x, getTerrainHeight(w.x, w.z) + 0.75, w.z);
+        matchGroup.add(grp);
+        G.pickups.push({ ...w, mesh: grp, taken: false });
+      });
+
+      state = 'playing';
+      document.getElementById('lobbyUI').classList.add('hidden');
+      document.getElementById('gameHUD').classList.add('active');
+      document.getElementById('hudOwnerBtn').style.display = isOwner() ? 'flex' : 'none';
+      updateWeaponUI();
+      updateWantedUI();
+      speakVoice('Bharat City mein aapka swagat hai!', 'hero');
+    }
+
+    function spawnVehicle(vtype, color, x, z, yaw, withDriver) {
+      const mesh = vtype === 'tank' ? buildTank3D() : (vtype === 'heli' ? buildHeli3D() : buildCar3D(color));
+      const y = getTerrainHeight(x, z);
+      mesh.position.set(x, y, z);
+      mesh.rotation.y = yaw;
+      matchGroup.add(mesh);
+      const v = {
+        type: vtype, mesh, x, y, z, yaw, speed: 0, altVel: 0,
+        hasDriver: withDriver, driverName: withDriver ? 'Driver' : null,
+        fireCd: 0, rotorSpd: 0
+      };
+      G.vehicles.push(v);
+      return v;
+    }
+
+    /* ================================================================
+       PLAYER INTERACTIONS: UNARMED PUNCH, GUNS, CAR SNATCH, TANK/HELI, LOVE/KISS
+       ================================================================ */
+    function addWanted(stars) {
+      if (!G) return;
+      const prev = G.wanted;
+      G.wanted = Math.min(5, Math.max(G.wanted, stars));
+      G.wantedCool = 26;
+      if (G.wanted > prev) {
+        playSfx('siren');
+        speakVoice('Police alert! Ruk jao!', 'police');
+      }
+      updateWantedUI();
+    }
+
+    function updateWantedUI() {
+      const el = document.getElementById('wantedStars');
+      if (!G || G.wanted <= 0) { el.classList.remove('show'); return; }
+      el.textContent = '★'.repeat(G.wanted);
+      el.classList.add('show');
+    }
+
+    function spawnExplosion(pos, radius, power) {
+      playSfx('boom');
+      const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 0.45, 14, 10),
+        new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.9 })
+      );
+      ball.position.copy(pos);
+      matchGroup.add(ball);
+      G.fx.push({ mesh: ball, type: 'boom', life: 0.45, maxLife: 0.45 });
+
+      // Blast NPCs flying!
+      for (const n of G.npcs) {
+        if (!n.alive) continue;
+        const d = Math.hypot(n.x - pos.x, n.z - pos.z);
+        if (d < radius) {
+          damageNpc(n, power, true);
+          const ang = Math.atan2(n.z - pos.z, n.x - pos.x);
+          n.knockVx = Math.cos(ang) * 14;
+          n.knockVz = Math.sin(ang) * 14;
+          n.knockVy = 9;
+        }
+      }
+      addWanted(3);
+    }
+
+    function spawnHearts3D(x, y, z) {
+      const mat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+      for (let i = 0; i < 12; i++) {
+        const h = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), mat);
+        h.position.set(x + (Math.random() - 0.5) * 1.1, y + 1.4 + Math.random() * 0.5, z + (Math.random() - 0.5) * 1.1);
+        matchGroup.add(h);
+        G.fx.push({ mesh: h, type: 'heart', life: 1.4, maxLife: 1.4, vy: 1.4 + Math.random() * 0.8 });
+      }
+    }
+
+    function damageNpc(npc, dmg, fromPlayer) {
+      if (!npc.alive) return;
+      npc.hp -= dmg;
+      if (fromPlayer) {
+        npc.hostile = true;
+        npc.loved = false;
+        npc.following = false;
+        if (npc.hp > 0) {
+          if (npc.elder) speakVoice('Are beta! Mujhe kyun maara! Police bulao!', 'elder');
+          else if (npc.gender === 'girl') speakVoice('Aah! Pagal ho gaye ho kya? Ruk abhi batati hoon!', 'girl');
+          else if (npc.role === 'police') speakVoice('Police par hamla! Giraftar karo!', 'police');
+          else if (npc.role === 'army') speakVoice('Army par attack! Fire!', 'army');
+          else speakVoice('Oye! Mujhe mukka kyun maara? Ab tu gaya!', 'boy');
+        }
+        addWanted(npc.role === 'army' ? 4 : (npc.role === 'police' ? 2 : 1));
+      }
+      if (npc.hp <= 0) {
+        npc.alive = false;
+        save.cash += 50; persist();
+        setTimeout(() => {
+          if (!G) return;
+          npc.hp = npc.role === 'army' ? 140 : 85;
+          npc.alive = true; npc.hostile = false;
+          npc.x = (Math.random() - 0.5) * 90; npc.z = (Math.random() - 0.5) * 90;
+          npc.y = getTerrainHeight(npc.x, npc.z);
+          npc.mesh.userData.bodyPivot.rotation.x = 0;
+          npc.mesh.userData.bodyPivot.position.y = 0;
+        }, 12000);
+      }
+    }
+
+    function doPrimaryAction() {
+      if (!G) return;
+      const p = G.player;
+
+      // 1. Inside Tank or Helicopter -> Fire Explosive Shell / Rocket!
+      if (p.vehicle) {
+        const v = p.vehicle;
+        if (v.type === 'car') { playSfx('horn'); return; }
+        if (v.fireCd > 0) return;
+        v.fireCd = v.type === 'tank' ? 1.15 : 0.42;
+        playSfx('boom');
+
+        const dir = new THREE.Vector3(-Math.sin(v.yaw), v.type === 'heli' ? -0.35 : -0.04, -Math.cos(v.yaw)).normalize();
+        const origin = new THREE.Vector3(v.x, v.y + (v.type === 'tank' ? 2.1 : 1.1), v.z).addScaledVector(dir, 3.2);
+        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+        shell.position.copy(origin);
+        matchGroup.add(shell);
+        G.projectiles.push({ mesh: shell, pos: origin, vel: dir.multiplyScalar(58), explosive: true, life: 2.5 });
+        return;
+      }
+
+      if (p.atkCd > 0) return;
+      const curGun = p.weapons[p.curW];
+
+      // 2. Unarmed Fist Punch!
+      if (curGun === 'fist') {
+        p.atkCd = 0.42;
+        p.mesh.userData.punchAnim = 1.0;
+        playSfx('punch');
+        for (const n of G.npcs) {
+          if (!n.alive) continue;
+          const d = Math.hypot(n.x - p.x, n.z - p.z);
+          if (d < 2.8) {
+            damageNpc(n, 28, true);
+            const ang = Math.atan2(n.z - p.z, n.x - p.x);
+            n.knockVx = Math.cos(ang) * 5.5;
+            n.knockVz = Math.sin(ang) * 5.5;
+          }
+        }
+        return;
+      }
+
+      // 3. Shooting Pistol / AK-47 / RPG!
+      p.atkCd = curGun === 'ak47' ? 0.14 : (curGun === 'rpg' ? 1.2 : 0.32);
+      playSfx(curGun === 'rpg' ? 'boom' : 'gun');
+      if (p.mesh.userData.gunMesh) {
+        const fl = p.mesh.userData.gunMesh.userData.flash;
+        fl.visible = true;
+        setTimeout(() => { fl.visible = false; }, 65);
+      }
+
+      const rc = new THREE.Raycaster();
+      rc.setFromCamera(new THREE.Vector2(0, 0), camera);
+      const dir = rc.ray.direction.clone();
+
+      if (curGun === 'rpg') {
+        const start = new THREE.Vector3(p.x, p.y + 1.45, p.z).addScaledVector(dir, 1.2);
+        const rkt = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        rkt.position.copy(start); matchGroup.add(rkt);
+        G.projectiles.push({ mesh: rkt, pos: start, vel: dir.multiplyScalar(48), explosive: true, life: 2.4 });
+        return;
+      }
+
+      // Hitscan Bullet for Pistol / AK-47
+      let hitN = null, bestD = 120;
+      for (const n of G.npcs) {
+        if (!n.alive) continue;
+        const center = new THREE.Vector3(n.x, n.y + 1.25, n.z);
+        const toN = center.clone().sub(rc.ray.origin);
+        const proj = toN.dot(dir);
+        if (proj > 0 && proj < bestD) {
+          const perp = toN.sub(dir.clone().multiplyScalar(proj)).length();
+          if (perp < 0.85) { bestD = proj; hitN = n; }
+        }
+      }
+      const endPt = rc.ray.origin.clone().addScaledVector(dir, bestD);
+      const tLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p.x, p.y + 1.4, p.z), endPt]),
+        new THREE.LineBasicMaterial({ color: 0xfef08a })
+      );
+      matchGroup.add(tLine);
+      G.fx.push({ mesh: tLine, type: 'tracer', life: 0.08, maxLife: 0.08 });
+      if (hitN) damageNpc(hitN, curGun === 'ak47' ? 35 : 26, true);
+    }
+
+    function enterVehicle(v) {
+      const p = G.player;
+      // Snatching a car with NPC driver -> eject driver & make them angry!
+      if (v.hasDriver) {
+        v.hasDriver = false;
+        const drCfg = { name: 'Car Owner', gender: 'boy', role: 'civilian', skin: '#c88c66', top: 0x475569, pants: 0x1e293b };
+        const dm = buildSculptedHuman(drCfg);
+        const dx = v.x + 2.8, dz = v.z;
+        const dy = getTerrainHeight(dx, dz);
+        dm.position.set(dx, dy, dz);
+        matchGroup.add(dm);
+        G.npcs.push({
+          id: Date.now(), ...drCfg, mesh: dm, x: dx, y: dy, z: dz, yaw: 0,
+          hp: 90, alive: true, hostile: true, loved: false, rejected: false, following: false,
+          likesPlayer: false, dir: 0, moveT: 1, atkCd: 0, knockVx: 0, knockVz: 0, knockVy: 0
+        });
+        speakVoice('Oye! Meri gaadi kyun chheeni? Ruk abhi batata hoon!', 'boy');
+        addWanted(1);
+      } else if (v.type === 'tank' || v.type === 'heli') {
+        speakVoice(v.type === 'tank' ? 'Army Tank chalu ho gaya!' : 'Helicopter takeoff ke liye ready hai!', 'army');
+        if (!isOwner()) addWanted(3);
+      }
+
+      p.vehicle = v;
+      p.mesh.visible = false;
+      updateActionButtons();
+    }
+
+    function exitVehicle() {
+      const p = G.player;
+      if (!p.vehicle) return;
+      const v = p.vehicle;
+      if (v.type === 'heli' && v.y > getTerrainHeight(v.x, v.z) + 2.5) {
+        speakVoice('Pehle neeche utaro, phir bahar niklo!', 'hero');
+        return;
+      }
+      p.x = v.x + Math.cos(v.yaw) * 3.0;
+      p.z = v.z - Math.sin(v.yaw) * 3.0;
+      p.y = getTerrainHeight(p.x, p.z);
+      p.vehicle = null;
+      p.mesh.visible = true;
+      updateActionButtons();
+    }
+
+    function flirtWithGirl(girl) {
+      if (girl.hostile) { speakVoice('Mujhse door raho!', 'girl'); return; }
+      if (isOwner() || girl.likesPlayer) {
+        girl.loved = true;
+        girl.rejected = false;
+        playSfx('love');
+        spawnHearts3D(girl.x, girl.y, girl.z);
+        speakVoice('Aww, tum bahut smart aur acche ho! Mujhe tum pasand ho!', 'girl');
+      } else {
+        girl.rejected = true;
+        speakVoice('Hat! Mujhe tum bilkul pasand nahi ho! Jaao yahan se!', 'girl');
+      }
+    }
+
+    function kissGirl(girl) {
+      const p = G.player;
+      // Bring Hero & Girl cleanly face-to-face!
+      const ang = Math.atan2(-(girl.x - p.x), -(girl.z - p.z));
+      p.yaw = ang;
+      girl.yaw = ang + Math.PI;
+      girl.x = p.x - Math.sin(ang) * 0.72;
+      girl.z = p.z - Math.cos(ang) * 0.72;
+      girl.y = getTerrainHeight(girl.x, girl.z);
+      girl.mesh.position.set(girl.x, girl.y, girl.z);
+      girl.mesh.rotation.y = girl.yaw;
+
+      p.kissingNpc = girl;
+      p.kissTimer = 2.4;
+      G.freeLook = true;
+      G.freeYaw = p.yaw + Math.PI * 0.55; // Cinematic side profile camera so you see the kiss!
+      document.getElementById('hudFreeLookBtn').classList.add('active');
+
+      playSfx('kiss');
+      spawnHearts3D((p.x + girl.x) / 2, p.y + 0.2, (p.z + girl.z) / 2);
+      speakVoice('Mwah! I love you!', 'girl');
+    }
+
+    function updateWeaponUI() {
+      if (!G) return;
+      const w = G.player.weapons[G.player.curW];
+      setHumanGun(G.player.mesh, w);
+      const labels = { fist: '👊 Empty Hands', pistol: '🔫 Pistol', ak47: '🔫 AK-47', rpg: '🚀 RPG Launcher' };
+      document.getElementById('weaponCycleBtn').textContent = labels[w] || '👊 Hands';
+      document.getElementById('crosshair').classList.toggle('show', w !== 'fist' || (G.player.vehicle && G.player.vehicle.type !== 'car'));
+      updateActionButtons();
+    }
+
+    function updateActionButtons() {
+      if (!G) return;
+      const v = G.player.vehicle;
+      const mainBtn = document.getElementById('btnActionMain');
+      const upBtn = document.getElementById('btnJumpUp');
+      const dnBtn = document.getElementById('btnDownExit');
+      const spBtn = document.getElementById('btnSprintNitro');
+
+      if (!v) {
+        const w = G.player.weapons[G.player.curW];
+        mainBtn.textContent = w === 'fist' ? '👊' : '🔥';
+        upBtn.textContent = '⬆';
+        dnBtn.textContent = '🕺';
+        spBtn.textContent = '⚡';
+      } else if (v.type === 'car') {
+        mainBtn.textContent = '📯';
+        upBtn.textContent = '🚪';
+        dnBtn.textContent = '🛑';
+        spBtn.textContent = '🔥';
+      } else if (v.type === 'tank') {
+        mainBtn.textContent = '💥';
+        upBtn.textContent = '🚪';
+        dnBtn.textContent = '🛑';
+        spBtn.textContent = '⚡';
+      } else if (v.type === 'heli') {
+        mainBtn.textContent = '🚀';
+        upBtn.textContent = '⬆️';
+        dnBtn.textContent = '⬇️';
+        spBtn.textContent = '🚪';
+      }
+    }
+
+    document.getElementById('weaponCycleBtn').addEventListener('click', () => {
+      if (!G || G.player.vehicle) return;
+      G.player.curW = (G.player.curW + 1) % G.player.weapons.length;
+      updateWeaponUI();
+    });
+
+    /* ================================================================
+       INPUT HANDLERS (Smooth Touch Joystick + 360 Look + Buttons)
+       ================================================================ */
+    const joy = { active: false, id: null, sx: 0, sy: 0, dx: 0, dy: 0 };
+    const look = { active: false, id: null, lx: 0, ly: 0 };
+    let holdUp = false, holdDown = false, holdSprint = false, holdFire = false;
+    const keys = {};
+
+    const joyZone = document.getElementById('joyZone');
+    const joyBase = document.getElementById('joyBase');
+    const joyKnob = document.getElementById('joyKnob');
+
+    joyZone.addEventListener('touchstart', (e) => {
+      for (const t of e.changedTouches) {
+        if (!joy.active) {
+          joy.active = true; joy.id = t.identifier; joy.sx = t.clientX; joy.sy = t.clientY;
+          joyBase.style.left = (t.clientX - 53) + 'px'; joyBase.style.top = (t.clientY - 53) + 'px'; joyBase.style.bottom = 'auto';
+        }
+      }
+    }, { passive: true });
+    joyZone.addEventListener('touchmove', (e) => {
+      if (!joy.active) return;
+      for (const t of e.changedTouches) {
+        if (t.identifier === joy.id) {
+          const maxR = 45;
+          let ox = t.clientX - joy.sx, oy = t.clientY - joy.sy;
+          const d = Math.hypot(ox, oy);
+          if (d > maxR) { ox = (ox / d) * maxR; oy = (oy / d) * maxR; }
+          joy.dx = ox / maxR; joy.dy = oy / maxR;
+          joyKnob.style.transform = `translate(${ox}px, ${oy}px)`;
+        }
+      }
+    }, { passive: true });
+    function endJoy(e) {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joy.id) { joy.active = false; joy.id = null; joy.dx = 0; joy.dy = 0; joyKnob.style.transform = 'translate(0,0)'; }
+      }
+    }
+    joyZone.addEventListener('touchend', endJoy, { passive: true });
+    joyZone.addEventListener('touchcancel', endJoy, { passive: true });
+
+    const lookZone = document.getElementById('lookZone');
+    lookZone.addEventListener('touchstart', (e) => {
+      for (const t of e.changedTouches) {
+        if (!look.active) { look.active = true; look.id = t.identifier; look.lx = t.clientX; look.ly = t.clientY; }
+      }
+    }, { passive: true });
+    lookZone.addEventListener('touchmove', (e) => {
+      if (!look.active || !G) return;
+      for (const t of e.changedTouches) {
+        if (t.identifier === look.id) {
+          const dx = t.clientX - look.lx, dy = t.clientY - look.ly;
+          look.lx = t.clientX; look.ly = t.clientY;
+          const s = 0.0055 * save.sens;
+          if (G.freeLook) G.freeYaw -= dx * s;
+          else G.player.yaw -= dx * s;
+          G.player.pitch = Math.max(-0.65, Math.min(0.45, G.player.pitch - dy * s));
+        }
+      }
+    }, { passive: true });
+    function endLook(e) { for (const t of e.changedTouches) if (t.identifier === look.id) { look.active = false; look.id = null; } }
+    lookZone.addEventListener('touchend', endLook, { passive: true });
+    lookZone.addEventListener('touchcancel', endLook, { passive: true });
+
+    // Lobby 360° Drag
+    let lobDrag = false, lobLx = 0;
+    document.getElementById('glContainer').addEventListener('pointerdown', (e) => { if (state === 'lobby') { lobDrag = true; lobLx = e.clientX; } });
+    window.addEventListener('pointermove', (e) => { if (state === 'lobby' && lobDrag) { lobbyYaw += (e.clientX - lobLx) * 0.012; lobLx = e.clientX; } });
+    window.addEventListener('pointerup', () => { lobDrag = false; });
+
+    // Right Action Buttons
+    const bMain = document.getElementById('btnActionMain');
+    bMain.addEventListener('touchstart', (e) => { e.preventDefault(); holdFire = true; doPrimaryAction(); });
+    bMain.addEventListener('touchend', () => { holdFire = false; });
+    bMain.addEventListener('mousedown', () => { holdFire = true; doPrimaryAction(); });
+    window.addEventListener('mouseup', () => { holdFire = false; });
+
+    const bUp = document.getElementById('btnJumpUp');
+    bUp.addEventListener('touchstart', (e) => {
+      e.preventDefault(); holdUp = true;
+      if (!G) return;
+      if (!G.player.vehicle && G.player.grounded) { G.player.vy = 8.4; G.player.grounded = false; }
+      else if (G.player.vehicle && G.player.vehicle.type !== 'heli') exitVehicle();
+    });
+    bUp.addEventListener('touchend', () => { holdUp = false; });
+    bUp.addEventListener('click', () => {
+      if (!G) return;
+      if (!G.player.vehicle && G.player.grounded) { G.player.vy = 8.4; G.player.grounded = false; }
+      else if (G.player.vehicle && G.player.vehicle.type !== 'heli') exitVehicle();
+    });
+
+    const bDn = document.getElementById('btnDownExit');
+    bDn.addEventListener('touchstart', (e) => {
+      e.preventDefault(); holdDown = true;
+      if (G && !G.player.vehicle) {
+        G.player.customPose.dance = !G.player.customPose.dance;
+        if (G.player.customPose.dance) speakVoice('Party time!', 'hero');
+      }
+    });
+    bDn.addEventListener('touchend', () => { holdDown = false; });
+    bDn.addEventListener('click', () => {
+      if (G && !G.player.vehicle) G.player.customPose.dance = !G.player.customPose.dance;
+    });
+
+    const bSp = document.getElementById('btnSprintNitro');
+    bSp.addEventListener('touchstart', (e) => {
+      e.preventDefault(); holdSprint = true;
+      if (G && G.player.vehicle && G.player.vehicle.type === 'heli') exitVehicle();
+    });
+    bSp.addEventListener('touchend', () => { holdSprint = false; });
+    bSp.addEventListener('click', () => {
+      if (G && G.player.vehicle && G.player.vehicle.type === 'heli') exitVehicle();
+    });
+
+    document.getElementById('hudFreeLookBtn').addEventListener('click', () => {
+      if (!G) return;
+      G.freeLook = !G.freeLook;
+      if (G.freeLook) G.freeYaw = G.player.yaw + Math.PI; // Instantly look at Hero's FACE!
+      document.getElementById('hudFreeLookBtn').classList.toggle('active', G.freeLook);
+    });
+
+    window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if (state === 'playing' && e.key === ' ') doPrimaryAction(); });
+    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+    /* ================================================================
+       CONTEXT BUTTONS RENDERER (Only shows when near Car/Girl/Gun!)
+       ================================================================ */
+    let lastCtxSig = '';
+    function updateContextButtons() {
+      const p = G.player;
+      const box = document.getElementById('contextActions');
+      if (p.vehicle) {
+        if (lastCtxSig !== 'in_veh') { lastCtxSig = 'in_veh'; box.innerHTML = ''; }
+        return;
+      }
+
+      const actions = [];
+      // 1. Nearby Vehicle?
+      let nearV = null, vd = 5.2;
+      for (const v of G.vehicles) {
+        const d = Math.hypot(v.x - p.x, v.z - p.z);
+        if (d < vd) { vd = d; nearV = v; }
+      }
+      if (nearV) {
+        const lbl = nearV.type === 'tank' ? '🚜 Tank Chalayein' : (nearV.type === 'heli' ? '🚁 Helicopter Udayein' : (nearV.hasDriver ? '🚗 Gaadi Chheenein' : '🚗 Car Chalayein'));
+        actions.push({ id: 'veh', cls: 'veh', label: lbl, fn: () => enterVehicle(nearV) });
+      }
+
+      // 2. Nearby Girl NPC?
+      let nearGirl = null, gd = 3.6;
+      for (const n of G.npcs) {
+        if (!n.alive || n.gender !== 'girl' || n.hostile) continue;
+        const d = Math.hypot(n.x - p.x, n.z - p.z);
+        if (d < gd) { gd = d; nearGirl = n; }
+      }
+      if (nearGirl) {
+        if (!nearGirl.loved) {
+          actions.push({ id: 'flirt_' + nearGirl.id, cls: 'love', label: `❤️ ${nearGirl.name} se Pyaar`, fn: () => flirtWithGirl(nearGirl) });
+        } else {
+          actions.push({ id: 'kiss_' + nearGirl.id, cls: 'love', label: `😘 Kiss ${nearGirl.name}`, fn: () => kissGirl(nearGirl) });
+          actions.push({
+            id: 'fol_' + nearGirl.id, cls: 'love',
+            label: nearGirl.following ? '✋ Ruko' : '🤝 Saath Chalo',
+            fn: () => { nearGirl.following = !nearGirl.following; speakVoice(nearGirl.following ? 'Chalo chalte hain!' : 'Theek hai yahin rukti hoon!', 'girl'); }
+          });
+        }
+      }
+
+      // 3. Nearby Weapon Pickup?
+      for (const pk of G.pickups) {
+        if (!pk.taken && Math.hypot(pk.x - p.x, pk.z - p.z) < 3.0) {
+          actions.push({
+            id: 'pk_' + pk.type, cls: '', label: `${pk.label} Uthayein`,
+            fn: () => {
+              pk.taken = true; pk.mesh.visible = false;
+              if (!p.weapons.includes(pk.type)) p.weapons.push(pk.type);
+              p.curW = p.weapons.indexOf(pk.type);
+              playSfx('pickup');
+              updateWeaponUI();
+              speakVoice(pk.label + ' mil gayi!', 'hero');
+            }
+          });
+        }
+      }
+
+      const sig = actions.map(a => a.id + a.label).join('|');
+      if (sig === lastCtxSig) return;
+      lastCtxSig = sig;
+      box.innerHTML = '';
+      actions.forEach(a => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ctx-btn ' + a.cls;
+        b.textContent = a.label;
+        b.addEventListener('click', a.fn);
+        box.appendChild(b);
+      });
+    }
+
+    /* ================================================================
+       MAIN 60 FPS OPEN WORLD SIMULATION UPDATE
+       ================================================================ */
+    function hitsBuilding(x, z, r) {
+      if (Math.abs(x) > HALF_W - 10 || Math.abs(z) > HALF_W - 10) return true;
+      for (const c of colliders) if (Math.hypot(x - c.x, z - c.z) < c.r + r) return true;
+      return false;
+    }
+
+    function applyPoseToHero(mesh, pose, spd, dt) {
+      const u = mesh.userData;
+      if (u.punchAnim > 0) u.punchAnim = Math.max(0, u.punchAnim - dt * 5.5);
+
+      if (G.player.kissTimer > 0) {
+        // Sweet Romantic Lean-In Animation
+        u.waistGrp.rotation.x = -0.18;
+        u.headGrp.rotation.x = -0.12;
+        u.armL.rotation.x = 0.65; u.armR.rotation.x = 0.65;
+        return;
+      }
+
+      if (pose.dance) {
+        u.walkPhase += dt * 9;
+        u.armL.rotation.x = Math.sin(u.walkPhase) * 1.4 - 1.2;
+        u.armR.rotation.x = -Math.sin(u.walkPhase) * 1.4 - 1.2;
+        u.legL.rotation.x = Math.sin(u.walkPhase) * 0.45;
+        u.legR.rotation.x = -Math.sin(u.walkPhase) * 0.45;
+        u.waistGrp.rotation.z = Math.sin(u.walkPhase) * 0.14;
+        return;
+      }
+
+      u.waistGrp.rotation.z = 0;
+      u.waistGrp.rotation.x = pose.torso;
+      u.headGrp.rotation.y = pose.headY;
+      u.headGrp.rotation.x = pose.headX;
+
+      if (spd > 0.08) {
+        u.walkPhase += dt * (8 + spd * 5);
+        const sw = Math.sin(u.walkPhase) * 0.72 * Math.min(1, spd);
+        u.legL.rotation.x = sw + pose.legL;
+        u.legR.rotation.x = -sw + pose.legR;
+        u.armL.rotation.x = -sw * 0.65 + pose.armL;
+        u.armR.rotation.x = (u.gunMesh ? 1.25 : sw * 0.65) + pose.armR;
+      } else {
+        u.walkPhase += dt * 2;
+        u.legL.rotation.x = pose.legL;
+        u.legR.rotation.x = pose.legR;
+        u.armL.rotation.x = Math.sin(u.walkPhase) * 0.04 + pose.armL;
+        u.armR.rotation.x = (u.gunMesh ? 1.25 : -Math.sin(u.walkPhase) * 0.04) + pose.armR;
+      }
+
+      if (u.punchAnim > 0) {
+        u.armR.rotation.x = 1.65 * Math.sin(u.punchAnim * Math.PI);
+      }
+    }
+
+    const mmC = document.getElementById('minimapCanvas');
+    const mmCtx = mmC.getContext('2d');
+
+    function updateWorld(dt) {
+      const p = G.player;
+      if (p.atkCd > 0) p.atkCd -= dt;
+      if (p.kissTimer > 0) {
+        p.kissTimer -= dt;
+        if (p.kissTimer <= 0) p.kissingNpc = null;
+      }
+      if (G.wanted > 0) {
+        G.wantedCool -= dt;
+        if (G.wantedCool <= 0) { G.wanted = Math.max(0, G.wanted - 1); G.wantedCool = 18; updateWantedUI(); }
+      }
+      if (holdFire && !p.vehicle && p.weapons[p.curW] === 'ak47') doPrimaryAction();
+
+      // Input Vector
+      let ix = joy.dx, iy = joy.dy;
+      if (keys['w'] || keys['arrowup']) iy -= 1;
+      if (keys['s'] || keys['arrowdown']) iy += 1;
+      if (keys['a'] || keys['arrowleft']) ix -= 1;
+      if (keys['d'] || keys['arrowright']) ix += 1;
+      const mag = Math.hypot(ix, iy);
+
+      // ---- PLAYER ON FOOT vs VEHICLE PHYSICS ----
+      if (!p.vehicle) {
+        let spdRatio = 0;
+        if (mag > 0.08 && p.kissTimer <= 0) {
+          p.customPose.dance = false;
+          const nx = ix / Math.max(1, mag), ny = iy / Math.max(1, mag);
+          const spd = (holdSprint || keys['shift']) ? 13.5 : 8.2;
+          const camRefYaw = G.freeLook ? G.freeYaw : p.yaw;
+          const vx = (nx * Math.cos(camRefYaw) + ny * Math.sin(camRefYaw)) * spd;
+          const vz = (-nx * Math.sin(camRefYaw) + ny * Math.cos(camRefYaw)) * spd;
+          if (!hitsBuilding(p.x + vx * dt, p.z, 0.6)) p.x += vx * dt;
+          if (!hitsBuilding(p.x, p.z + vz * dt, 0.6)) p.z += vz * dt;
+          if (G.freeLook) p.yaw = Math.atan2(-vx, -vz);
+          spdRatio = Math.min(1, mag);
+        }
+        const gy = getTerrainHeight(p.x, p.z);
+        p.vy -= 22 * dt; p.y += p.vy * dt;
+        if (p.y <= gy) { p.y = gy; p.vy = 0; p.grounded = true; }
+        p.mesh.position.set(p.x, p.y, p.z);
+        p.mesh.rotation.y = p.yaw;
+        applyPoseToHero(p.mesh, p.customPose, spdRatio, dt);
+      } else {
+        const v = p.vehicle;
+        if (v.fireCd > 0) v.fireCd -= dt;
+
+        if (v.type === 'car' || v.type === 'tank') {
+          const maxS = v.type === 'tank' ? 14 : (holdSprint ? 34 : 23);
+          const accel = (-iy) * (v.type === 'tank' ? 18 : 28);
+          v.speed += accel * dt;
+          v.speed *= Math.pow(0.18, dt);
+          v.speed = Math.max(-10, Math.min(maxS, v.speed));
+          if (Math.abs(ix) > 0.1 && (Math.abs(v.speed) > 0.5 || v.type === 'tank')) {
+            const turnSign = v.speed >= -0.2 ? 1 : -1;
+            v.yaw -= ix * (v.type === 'tank' ? 1.5 : 2.3) * turnSign * dt;
+          }
+          const nx = v.x - Math.sin(v.yaw) * v.speed * dt;
+          const nz = v.z - Math.cos(v.yaw) * v.speed * dt;
+          if (!hitsBuilding(nx, nz, v.type === 'tank' ? 2.4 : 1.7)) { v.x = nx; v.z = nz; }
+          else v.speed *= -0.35;
+          v.y = getTerrainHeight(v.x, v.z);
+          v.mesh.position.set(v.x, v.y, v.z);
+          v.mesh.rotation.y = v.yaw;
+          if (v.mesh.userData.wheels) v.mesh.userData.wheels.forEach(w => { w.rotation.x -= v.speed * dt * 2.2; });
+
+          // Run Over / Knock Down NPCs with Car or Tank!
+          if (Math.abs(v.speed) > 5.5) {
+            for (const n of G.npcs) {
+              if (!n.alive) continue;
+              if (Math.hypot(n.x - v.x, n.z - v.z) < (v.type === 'tank' ? 3.2 : 2.3)) {
+                damageNpc(n, v.type === 'tank' ? 120 : 65, true);
+                n.knockVx = -Math.sin(v.yaw) * 14;
+                n.knockVz = -Math.cos(v.yaw) * 14;
+                n.knockVy = 7.5;
+                playSfx('punch');
+              }
+            }
+          }
+        } else if (v.type === 'heli') {
+          // Flyable Attack Helicopter!
+          v.rotorSpd = Math.min(26, v.rotorSpd + dt * 16);
+          if (holdUp || keys['e']) v.altVel += 22 * dt;
+          else if (holdDown || keys['q']) v.altVel -= 22 * dt;
+          else v.altVel *= Math.pow(0.05, dt);
+          v.altVel = Math.max(-14, Math.min(16, v.altVel));
+
+          const ground = getTerrainHeight(v.x, v.z);
+          v.y = Math.max(ground, Math.min(82, v.y + v.altVel * dt));
+          const airborne = v.y > ground + 0.6;
+          if (airborne) {
+            v.yaw -= ix * 1.9 * dt;
+            const flySpd = (-iy) * 28;
+            v.x = Math.max(-HALF_W + 14, Math.min(HALF_W - 14, v.x - Math.sin(v.yaw) * flySpd * dt));
+            v.z = Math.max(-HALF_W + 14, Math.min(HALF_W - 14, v.z - Math.cos(v.yaw) * flySpd * dt));
+            v.mesh.rotation.x = iy * 0.22;
+            v.mesh.rotation.z = -ix * 0.24;
+          } else {
+            v.mesh.rotation.x *= 0.85; v.mesh.rotation.z *= 0.85;
+          }
+          v.mesh.position.set(v.x, v.y, v.z);
+          v.mesh.rotation.y = v.yaw;
+        }
+        p.x = v.x; p.y = v.y; p.z = v.z;
+        if (!G.freeLook) p.yaw = v.yaw;
+      }
+
+      // Spin Heli Rotors & Autonomous Road Traffic Cars!
+      for (const v of G.vehicles) {
+        if (v.type === 'heli' && v.mesh.userData.mainRotor) {
+          const rSpd = (p.vehicle === v) ? v.rotorSpd : Math.max(0, v.rotorSpd - dt * 5);
+          v.rotorSpd = rSpd;
+          v.mesh.userData.mainRotor.rotation.y += rSpd * dt;
+          v.mesh.userData.tailRotor.rotation.x += rSpd * 1.5 * dt;
+        }
+        if (v.type === 'car' && v.hasDriver && p.vehicle !== v) {
+          const sp = 7.5;
+          const nx = v.x - Math.sin(v.yaw) * sp * dt;
+          const nz = v.z - Math.cos(v.yaw) * sp * dt;
+          if (Math.abs(nx) > 78 || Math.abs(nz) > 78 || hitsBuilding(nx, nz, 1.9)) {
+            v.yaw += Math.PI * 0.5;
+          } else {
+            v.x = nx; v.z = nz;
+            v.y = getTerrainHeight(v.x, v.z);
+            v.mesh.position.set(v.x, v.y, v.z);
+            v.mesh.rotation.y = v.yaw;
+            if (v.mesh.userData.wheels) v.mesh.userData.wheels.forEach(w => { w.rotation.x -= sp * dt * 2; });
+          }
+        }
+      }
+
+      // ---- LIVING NPC AI (Peaceful until disturbed, Police Wanted, Owner Mind Control!) ----
+      for (const n of G.npcs) {
+        const u = n.mesh.userData;
+        if (!n.alive) {
+          u.bodyPivot.rotation.x += (-Math.PI / 2 - u.bodyPivot.rotation.x) * Math.min(1, dt * 8);
+          u.bodyPivot.position.y += (0.25 - u.bodyPivot.position.y) * Math.min(1, dt * 8);
+          continue;
+        }
+
+        // Knockback physics (from punch, car hit, or tank blast!)
+        if (Math.abs(n.knockVx) > 0.2 || Math.abs(n.knockVz) > 0.2 || n.knockVy > 0) {
+          n.x += n.knockVx * dt; n.z += n.knockVz * dt;
+          n.y += n.knockVy * dt; n.knockVy -= 22 * dt;
+          n.knockVx *= Math.pow(0.08, dt); n.knockVz *= Math.pow(0.08, dt);
+          const gy = getTerrainHeight(n.x, n.z);
+          if (n.y <= gy) { n.y = gy; n.knockVy = 0; }
+          n.mesh.position.set(n.x, n.y, n.z);
+          continue;
+        }
+
+        if (p.kissingNpc === n) {
+          u.waistGrp.rotation.x = -0.18;
+          continue;
+        }
+        u.waistGrp.rotation.x = 0;
+
+        // Owner Crowd Mind Control!
+        if (G.crowdMode === 'freeze') { continue; }
+        if (G.crowdMode === 'dance') {
+          u.walkPhase += dt * 9;
+          u.armL.rotation.x = Math.sin(u.walkPhase) * 1.4 - 1.1;
+          u.armR.rotation.x = -Math.sin(u.walkPhase) * 1.4 - 1.1;
+          u.legL.rotation.x = Math.sin(u.walkPhase) * 0.4;
+          u.legR.rotation.x = -Math.sin(u.walkPhase) * 0.4;
+          continue;
+        }
+
+        const distP = Math.hypot(p.x - n.x, p.z - n.z);
+        const isAngry = n.hostile || (G.wanted >= 1 && n.role === 'police') || (G.wanted >= 3 && n.role === 'army');
+        let spd = 0;
+
+        if (G.crowdMode === 'follow' || n.following) {
+          if (distP > 3.2) {
+            const ang = Math.atan2(-(p.x - n.x), -(p.z - n.z));
+            n.yaw = ang;
+            const nx = n.x - Math.sin(ang) * 5.2 * dt, nz = n.z - Math.cos(ang) * 5.2 * dt;
+            if (!hitsBuilding(nx, nz, 0.55)) { n.x = nx; n.z = nz; spd = 0.85; }
+          }
+        } else if (isAngry && distP < 65) {
+          if (n.elder) {
+            // Elders run away calling for help!
+            const ang = Math.atan2(p.x - n.x, p.z - n.z);
+            n.yaw = ang;
+            const nx = n.x - Math.sin(ang) * 3.0 * dt, nz = n.z - Math.cos(ang) * 3.0 * dt;
+            if (!hitsBuilding(nx, nz, 0.55)) { n.x = nx; n.z = nz; spd = 0.6; }
+          } else {
+            const ang = Math.atan2(-(p.x - n.x), -(p.z - n.z));
+            n.yaw = ang;
+            const stopR = (n.role === 'police' || n.role === 'army') ? 16 : 2.1;
+            if (distP > stopR) {
+              const s = n.role === 'army' ? 5.6 : 4.8;
+              const nx = n.x - Math.sin(ang) * s * dt, nz = n.z - Math.cos(ang) * s * dt;
+              if (!hitsBuilding(nx, nz, 0.55)) { n.x = nx; n.z = nz; spd = 0.85; }
+            }
+            n.atkCd -= dt;
+            if (n.atkCd <= 0 && distP <= stopR + 2) {
+              n.atkCd = (n.role === 'army' ? 0.8 : 1.25);
+              if (n.role === 'police' || n.role === 'army') playSfx('gun');
+              else playSfx('punch');
+              if (!isOwner() && !p.vehicle) {
+                p.hp = Math.max(10, p.hp - (n.role === 'army' ? 14 : 8));
+                const df = document.getElementById('damageFlash');
+                df.classList.add('show');
+                setTimeout(() => df.classList.remove('show'), 160);
+              }
+            }
+          }
+        } else {
+          // Peaceful daily strolling!
+          n.moveT -= dt;
+          if (n.moveT <= 0) { n.moveT = 2.5 + Math.random() * 4; n.dir = Math.random() * 6.28; }
+          const ws = n.elder ? 1.4 : 2.4;
+          const nx = n.x - Math.sin(n.dir) * ws * dt, nz = n.z - Math.cos(n.dir) * ws * dt;
+          if (!hitsBuilding(nx, nz, 0.6) && Math.hypot(nx, nz) < 84) {
+            n.x = nx; n.z = nz; n.yaw = n.dir; spd = 0.45;
+          } else n.dir += 1.8;
+        }
+
+        n.y = getTerrainHeight(n.x, n.z);
+        n.mesh.position.set(n.x, n.y, n.z);
+        n.mesh.rotation.y = n.yaw;
+
+        if (spd > 0.05) {
+          u.walkPhase += dt * (6 + spd * 4);
+          const sw = Math.sin(u.walkPhase) * 0.62 * spd;
+          u.legL.rotation.x = sw; u.legR.rotation.x = -sw;
+          u.armL.rotation.x = -sw * 0.55; u.armR.rotation.x = u.gunMesh ? 1.1 : sw * 0.55;
+        } else {
+          u.legL.rotation.x *= 0.85; u.legR.rotation.x *= 0.85;
+        }
+      }
+
+      // Projectiles (Tank Shells & Helicopter Rockets)
+      for (let i = G.projectiles.length - 1; i >= 0; i--) {
+        const pr = G.projectiles[i];
+        pr.pos.addScaledVector(pr.vel, dt);
+        pr.vel.y -= 9.5 * dt;
+        pr.mesh.position.copy(pr.pos);
+        pr.life -= dt;
+        const hitGround = pr.pos.y <= getTerrainHeight(pr.pos.x, pr.pos.z) + 0.3;
+        if (hitGround || pr.life <= 0) {
+          if (pr.explosive) spawnExplosion(pr.pos, 11, 160);
+          matchGroup.remove(pr.mesh);
+          G.projectiles.splice(i, 1);
+        }
+      }
+
+      // Spin Weapon Pickups
+      for (const pk of G.pickups) if (!pk.taken) pk.mesh.rotation.y += dt * 1.8;
+
+      // FX Cleanup (Explosions, Hearts, Tracers)
+      for (let i = G.fx.length - 1; i >= 0; i--) {
+        const f = G.fx[i];
+        f.life -= dt;
+        if (f.type === 'boom') {
+          const s = 1 + (1 - f.life / f.maxLife) * 2.4;
+          f.mesh.scale.set(s, s, s);
+          f.mesh.material.opacity = Math.max(0, f.life / f.maxLife);
+        } else if (f.type === 'heart') {
+          f.mesh.position.y += f.vy * dt;
+          f.mesh.rotation.y += dt * 4;
+        }
+        if (f.life <= 0) { matchGroup.remove(f.mesh); G.fx.splice(i, 1); }
+      }
+
+      // Smooth 3rd-Person / Vehicle / 360° Free-Look Camera!
+      const camYaw = G.freeLook ? G.freeYaw : p.yaw;
+      const dist = p.vehicle ? (p.vehicle.type === 'heli' ? 11.5 : 8.2) : (p.kissTimer > 0 ? 2.5 : 4.2);
+      const targetH = p.vehicle ? 2.1 : 1.55;
+      const sinY = Math.sin(camYaw), cosY = Math.cos(camYaw);
+      const cx = p.x + sinY * dist * Math.cos(p.pitch);
+      const cz = p.z + cosY * dist * Math.cos(p.pitch);
+      let cy = p.y + targetH - Math.sin(p.pitch) * dist;
+      const cg = getTerrainHeight(cx, cz) + 0.7;
+      if (cy < cg) cy = cg;
+
+      camera.position.lerp(new THREE.Vector3(cx, cy, cz), Math.min(1, dt * 12));
+      camera.lookAt(p.x, p.y + targetH * 0.9, p.z);
+
+      // Update Minimal HUD
+      document.getElementById('hudHpFill').style.width = `${(p.hp / p.maxHp) * 100}%`;
+      document.getElementById('hudHpNum').textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
+      updateContextButtons();
+      drawMinimap();
+    }
+
+    function drawMinimap() {
+      const w = mmC.width, h = mmC.height, cx = w / 2, cy = h / 2, sc = 0.45;
+      mmCtx.clearRect(0, 0, w, h);
+      const p = G.player;
+      const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw);
+
+      function plot(wx, wz, col, rad) {
+        const dx = wx - p.x, dz = wz - p.z;
+        const rx = dx * cos - dz * sin, rz = dx * sin + dz * cos;
+        const mx = cx + rx * sc, my = cy + rz * sc;
+        if (Math.hypot(mx - cx, my - cy) < w * 0.46) {
+          mmCtx.fillStyle = col;
+          mmCtx.beginPath(); mmCtx.arc(mx, my, rad, 0, Math.PI * 2); mmCtx.fill();
+        }
+      }
+      for (const v of G.vehicles) plot(v.x, v.z, v.type === 'heli' ? '#facc15' : (v.type === 'tank' ? '#22c55e' : '#38bdf8'), 3.4);
+      for (const n of G.npcs) if (n.alive) plot(n.x, n.z, n.hostile ? '#ef4444' : (n.gender === 'girl' ? '#f472b6' : '#cbd5e1'), 2.3);
+
+      mmCtx.fillStyle = '#facc15';
+      mmCtx.beginPath(); mmCtx.moveTo(cx, cy - 6); mmCtx.lineTo(cx - 4.5, cy + 5); mmCtx.lineTo(cx + 4.5, cy + 5); mmCtx.closePath(); mmCtx.fill();
+    }
+
+    /* ================================================================
+       LOBBY UI, OWNER STUDIO & MODALS
+       ================================================================ */
+    function renderLobbyUI() {
+      const out = HERO_OUTFITS.find(o => o.id === save.outfitId) || HERO_OUTFITS[0];
+      document.getElementById('lCash').textContent = save.cash;
+      document.getElementById('lPid').textContent = save.pid;
+      document.getElementById('lHeroTitle').textContent = out.name;
+      document.getElementById('voiceToggleBtn').textContent = save.voice ? '🗣️ Voice ON' : '🔇 Voice OFF';
+      document.getElementById('langBtn').textContent = save.lang === 'hi' ? '🌐 हिन्दी' : '🌐 Hinglish';
+
+      const tc = document.getElementById('lTier');
+      tc.className = 'tier-chip' + (isOwner() ? ' owner' : (isPro() ? ' pro' : ''));
+      tc.textContent = isOwner() ? '👑 OWNER' : (isPro() ? '⭐ PRO' : 'FREE');
+      document.getElementById('tabOwnerLobbyBtn').style.display = isOwner() ? 'flex' : 'none';
+    }
+
+    document.getElementById('voiceToggleBtn').addEventListener('click', () => { save.voice = !save.voice; persist(); renderLobbyUI(); });
+    document.getElementById('langBtn').addEventListener('click', () => { save.lang = save.lang === 'hi' ? 'hinglish' : 'hi'; persist(); renderLobbyUI(); });
+    document.getElementById('faceZoomBtn').addEventListener('click', () => {
+      lobbyZoomFace = !lobbyZoomFace;
+      document.getElementById('faceZoomBtn').textContent = lobbyZoomFace ? '🔭 Full Body' : '🔍 Face Zoom';
+    });
+
+    document.getElementById('tabStyleBtn').addEventListener('click', () => {
+      const g = document.getElementById('outfitGrid');
+      g.innerHTML = HERO_OUTFITS.map(o => {
+        const lk = o.pro && !isPro();
+        return `<button type="button" class="opt-card ${save.outfitId === o.id ? 'sel' : ''}" data-oid="${o.id}">
+          <b>${lk ? '🔒 ' : ''}${o.name}</b>
+          <span>${o.gender === 'girl' ? 'Girl Character' : 'Boy Character'}</span>
+        </button>`;
+      }).join('');
+      g.querySelectorAll('.opt-card').forEach(b => b.addEventListener('click', () => {
+        const o = HERO_OUTFITS.find(x => x.id === b.dataset.oid);
+        if (o.pro && !isPro()) { closeModals(); openProModal(); return; }
+        save.outfitId = o.id; persist(); buildLobbyHero(); renderLobbyUI(); closeModals();
+      }));
+      document.getElementById('styleModal').classList.add('show');
+    });
+
+    document.getElementById('tabSetBtn').addEventListener('click', () => {
+      document.getElementById('sensSlider').value = save.sens;
+      document.getElementById('sensTxt').textContent = save.sens.toFixed(1) + 'x';
+      document.getElementById('settingsModal').classList.add('show');
+    });
+    document.getElementById('sensSlider').addEventListener('input', (e) => {
+      save.sens = parseFloat(e.target.value); document.getElementById('sensTxt').textContent = save.sens.toFixed(1) + 'x'; persist();
+    });
+    document.getElementById('gfxSmoothBtn').addEventListener('click', () => {
+      save.gfx = 'smooth'; persist(); if (renderer) { renderer.shadowMap.enabled = false; renderer.setPixelRatio(1); } showCaption('Smooth 60 FPS ON');
+    });
+    document.getElementById('gfxUltraBtn').addEventListener('click', () => {
+      save.gfx = 'ultra'; persist(); if (renderer) { renderer.shadowMap.enabled = true; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5)); } showCaption('Ultra 3D Shadows ON');
+    });
+
+    function openProModal() {
+      document.getElementById('proAmtText').textContent = 'Exact Pay: ₹' + getUniquePayAmt(save.pid);
+      document.getElementById('proPidText').textContent = save.pid;
+      document.getElementById('unlockInput').value = '';
+      document.getElementById('proModal').classList.add('show');
+    }
+    document.getElementById('openProBtn').addEventListener('click', openProModal);
+    document.getElementById('payUpiBtn').addEventListener('click', () => {
+      window.location.href = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=BharatCity3D&am=${getUniquePayAmt(save.pid)}&cu=INR&tn=${encodeURIComponent(save.pid)}`;
+    });
+    document.getElementById('verifyCodeBtn').addEventListener('click', () => {
+      const code = document.getElementById('unlockInput').value.trim().toUpperCase();
+      if (hash64Hex('LA_OWNER_MASTER::' + code) === OWNER_MASTER_HASH) {
+        save.tier = 'owner'; persist(); closeModals(); renderLobbyUI();
+        speakVoice('Welcome Owner Abhishek! Ab poori duniya aapke control mein hai!', 'hero');
+        return;
+      }
+      if (code === expectedProKey(save.pid)) {
+        save.tier = 'pro'; persist(); closeModals(); renderLobbyUI();
+        speakVoice('Welcome Premium User!', 'hero');
+        return;
+      }
+      showCaption('❌ Galat Code!');
+    });
+
+    // Owner Studio Controls (Body Pose Sliders + Crowd Mind Control + Spawner!)
+    document.getElementById('hudOwnerBtn').addEventListener('click', () => {
+      if (!G || !isOwner()) return;
+      G.freeLook = true; G.freeYaw = G.player.yaw + Math.PI;
+      document.getElementById('hudFreeLookBtn').classList.add('active');
+      document.getElementById('ownerStudioModal').classList.add('show');
+    });
+    document.getElementById('tabOwnerLobbyBtn').addEventListener('click', () => {
+      showCaption('👑 Game ke andar upar 👑 button se Body Pose & Sab NPC Control karein!');
+    });
+
+    const poseMap = [
+      ['slHeadY', 'pvHeadY', 'headY'], ['slHeadX', 'pvHeadX', 'headX'],
+      ['slArmL', 'pvArmL', 'armL'], ['slArmR', 'pvArmR', 'armR'],
+      ['slLegL', 'pvLegL', 'legL'], ['slLegR', 'pvLegR', 'legR'],
+      ['slTorso', 'pvTorso', 'torso']
+    ];
+    poseMap.forEach(([slId, pvId, prop]) => {
+      document.getElementById(slId).addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        document.getElementById(pvId).textContent = val.toFixed(1);
+        if (G) { G.player.customPose.dance = false; G.player.customPose[prop] = val; }
+      });
+    });
+
+    document.getElementById('owPoseDance').addEventListener('click', () => { if (G) G.player.customPose.dance = !G.player.customPose.dance; });
+    document.getElementById('owPoseReset').addEventListener('click', () => {
+      if (!G) return;
+      G.player.customPose = { headY: 0, headX: 0, armL: 0, armR: 0, legL: 0, legR: 0, torso: 0, dance: false };
+      poseMap.forEach(([slId, pvId]) => { document.getElementById(slId).value = 0; document.getElementById(pvId).textContent = '0'; });
+    });
+
+    document.getElementById('owFollowAll').addEventListener('click', () => { if (G) { G.crowdMode = 'follow'; speakVoice('Sab log mere peeche chalo!', 'hero'); } });
+    document.getElementById('owDanceAll').addEventListener('click', () => { if (G) { G.crowdMode = 'dance'; speakVoice('Sab log nacho!', 'hero'); } });
+    document.getElementById('owFreezeAll').addEventListener('click', () => { if (G) { G.crowdMode = 'freeze'; speakVoice('Sab wahin ruk jao!', 'hero'); } });
+    document.getElementById('owNormalAll').addEventListener('click', () => { if (G) { G.crowdMode = 'normal'; showCaption('Normal City Life ON'); } });
+    document.getElementById('owClearPolice').addEventListener('click', () => {
+      if (!G) return;
+      G.wanted = 0; G.npcs.forEach(n => { n.hostile = false; }); updateWantedUI();
+      speakVoice('Police shant ho gayi!', 'police');
+    });
+    document.getElementById('owGiveGuns').addEventListener('click', () => {
+      if (!G) return;
+      G.player.weapons = ['fist', 'pistol', 'ak47', 'rpg']; updateWeaponUI();
+      speakVoice('Saari guns mil gayi!', 'hero');
+    });
+    document.getElementById('owSpawnCar').addEventListener('click', () => {
+      if (!G) return; const p = G.player;
+      spawnVehicle('car', 0xf43f5e, p.x - Math.sin(p.yaw) * 6, p.z - Math.cos(p.yaw) * 6, p.yaw, false);
+      closeModals(); speakVoice('Sports Car ready hai!', 'hero');
+    });
+    document.getElementById('owSpawnTank').addEventListener('click', () => {
+      if (!G) return; const p = G.player;
+      spawnVehicle('tank', 0x3b4d32, p.x - Math.sin(p.yaw) * 8, p.z - Math.cos(p.yaw) * 8, p.yaw, false);
+      closeModals(); speakVoice('Army Tank aagaya!', 'army');
+    });
+    document.getElementById('owSpawnHeli').addEventListener('click', () => {
+      if (!G) return; const p = G.player;
+      spawnVehicle('heli', 0x1e293b, p.x - Math.sin(p.yaw) * 9, p.z - Math.cos(p.yaw) * 9, p.yaw, false);
+      closeModals(); speakVoice('Attack Helicopter ready!', 'army');
+    });
+
+    // Pause / Exit / Fullscreen
+    document.getElementById('startBtn').addEventListener('click', startOpenWorld);
+    document.getElementById('hudFsBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+      else document.exitFullscreen?.().catch(() => {});
+    });
+    document.getElementById('hudPauseBtn').addEventListener('click', () => { state = 'paused'; document.getElementById('pauseModal').classList.add('show'); });
+    document.getElementById('resumeBtn').addEventListener('click', () => { closeModals(); state = 'playing'; });
+    document.getElementById('healRespawnBtn').addEventListener('click', () => { if (G) G.player.hp = G.player.maxHp; closeModals(); state = 'playing'; });
+    document.getElementById('quitLobbyBtn').addEventListener('click', () => {
+      state = 'lobby'; closeModals();
+      document.getElementById('gameHUD').classList.remove('active');
+      document.getElementById('lobbyUI').classList.remove('hidden');
+      if (matchGroup) { scene.remove(matchGroup); matchGroup = null; }
+      G = null; buildLobbyHero(); lobbyGroup.visible = true; renderLobbyUI();
+    });
+
+    /* ================================================================
+       BOOT 3D ENGINE & LOOP
+       ================================================================ */
+    function boot() {
+      if (typeof THREE === 'undefined') {
+        document.getElementById('spPct').textContent = 'LOADING 3D ENGINE (FIRST TIME NEEDS NET)...';
+        setTimeout(boot, 400);
+        return;
+      }
+      document.getElementById('spFill').style.width = '50%';
+      document.getElementById('spPct').textContent = 'BUILDING BHARAT CITY 3D...';
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x8bc2eb);
+      scene.fog = new THREE.FogExp2(0x9fc6e2, 0.0044);
+
+      camera = new THREE.PerspectiveCamera(56, window.innerWidth / window.innerHeight, 0.15, 450);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(save.gfx === 'ultra' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1);
+      renderer.shadowMap.enabled = (save.gfx === 'ultra');
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.getElementById('glContainer').appendChild(renderer.domElement);
+
+      scene.add(new THREE.HemisphereLight(0xe0f2fe, 0x4b5e36, 0.78));
+      const sun = new THREE.DirectionalLight(0xfff1d0, 1.15);
+      sun.position.set(80, 120, 60);
+      sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+      const d = 100;
+      sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
+      scene.add(sun);
+
+      buildWorld3D();
+      buildLobbyHero();
+      renderLobbyUI();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      document.getElementById('spFill').style.width = '100%';
+      document.getElementById('spPct').textContent = 'READY! 100%';
+      setTimeout(() => document.getElementById('splashScreen').classList.add('hide'), 650);
+
+      let lastT = performance.now();
+      function loop(now) {
+        requestAnimationFrame(loop);
+        const dt = Math.min(0.05, (now - lastT) / 1000);
+        lastT = now;
+
+        if (state === 'lobby' && lobbyHero) {
+          if (!lobDrag) lobbyYaw += dt * 0.25;
+          lobbyHero.rotation.y = Math.PI + lobbyYaw;
+          const u = lobbyHero.userData;
+          u.walkPhase += dt * 2.2;
+          u.armL.rotation.x = Math.sin(u.walkPhase) * 0.04;
+          u.armR.rotation.x = -Math.sin(u.walkPhase) * 0.04;
+
+          const tc = lobbyZoomFace ? new THREE.Vector3(0, 2.02, 1.38) : new THREE.Vector3(0.2, 1.75, 3.65);
+          const tl = lobbyZoomFace ? new THREE.Vector3(0, 1.98, 0) : new THREE.Vector3(0, 1.35, 0);
+          camera.position.lerp(tc, Math.min(1, dt * 6));
+          camera.lookAt(tl);
+        } else if (state === 'playing' && G) {
+          updateWorld(dt);
+        }
+        renderer.render(scene, camera);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // Service Worker & PWA Install
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    }
+    let dp = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); dp = e; document.getElementById('installPwaBtn').classList.add('show');
+    });
+    document.getElementById('installPwaBtn').addEventListener('click', async () => {
+      if (!dp) return; dp.prompt(); await dp.userChoice;
+      document.getElementById('installPwaBtn').classList.remove('show'); dp = null;
+    });
+
+    boot();
+  })();
+  </script>
+</body>
+</html>
